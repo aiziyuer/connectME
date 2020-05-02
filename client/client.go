@@ -77,7 +77,7 @@ func NewDoH(modOptions ...ModOption) *DoH {
 		fn(&option)
 	}
 
-	return &DoH{Option: &option}
+	return &DoH{option: &option}
 }
 
 // requestResponse contains the response from a DNS query.

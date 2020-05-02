@@ -13,7 +13,7 @@ import (
 )
 
 type DoH struct {
-	Option *Option
+	option *Option
 }
 
 func (c *DoH) Lookup(name string, rType uint16) *dns.Msg {
@@ -32,12 +32,12 @@ func (c *DoH) LookupAppend(r *dns.Msg, name string, rType uint16) {
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: c.Option.InsecureSkipVerify,
+				InsecureSkipVerify: c.option.InsecureSkipVerify,
 			},
 		},
 	}
 
-	req, err := http.NewRequest("GET", c.Option.BaseURL, nil)
+	req, err := http.NewRequest("GET", c.option.BaseURL, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,8 +47,8 @@ func (c *DoH) LookupAppend(r *dns.Msg, name string, rType uint16) {
 	q := req.URL.Query()
 	q.Add("name", name)
 	q.Add("type", dns.TypeToString[rType])
-	q.Add("cd", "false") // ignore DNSSEC
-	q.Add("do", "false") // ignore DNSSEC
+	//q.Add("cd", "false") // ignore DNSSEC
+	//q.Add("do", "false") // ignore DNSSEC
 	req.URL.RawQuery = q.Encode()
 
 	res, err := client.Do(req)

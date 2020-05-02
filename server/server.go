@@ -1,27 +1,29 @@
 package server
 
 import (
-	"fmt"
 	"github.com/aiziyuer/connectDNS/client"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type Option struct {
-	protocol string
-	address  string
-	port     int
-	upstream string
+	protocol           string
+	upstream           string
+	clientIP           string
+	insecureSkipVerify bool
 }
 
 type ModOption func(option *Option)
 
-func ForwardServer(modOptions ...ModOption) {
+type ForwardServer struct {
+	option *Option
+}
+
+func NewForwardServer(modOptions ...ModOption) *ForwardServer {
 
 	option := Option{
 		protocol: "udp",
-		address:  "0.0.0.0",
-		port:     53,
 		upstream: "",
 	}
 
@@ -29,43 +31,73 @@ func ForwardServer(modOptions ...ModOption) {
 		fn(&option)
 	}
 
-	h := dns.NewServeMux()
-	h.HandleFunc(".", func(writer dns.ResponseWriter, msg *dns.Msg) {
+	return &ForwardServer{
+		option: &option,
+	}
+}
 
-		r := new(dns.Msg)
-		r.SetReply(msg)
-		r.RecursionAvailable = msg.RecursionDesired
-		r.Authoritative = true
-		r.SetRcode(msg, dns.RcodeSuccess)
+func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 
-		for _, q := range msg.Question {
-			switch q.Qtype {
-			default:
-				//defaultResolver(protocol, &q, r)
-			case dns.TypePTR:
-				//1.0.0.127.in-addr.arpa.
-				if dns.Fqdn(q.Name) == "1.0.0.127.in-addr.arpa." {
-					r.Answer = append(r.Answer, &dns.PTR{
-						Hdr: dns.RR_Header{Name: dns.Fqdn(q.Name), Rrtype: q.Qtype, Class: dns.ClassINET, Ttl: 0},
-						Ptr: dns.Fqdn(q.Name),
-					})
-				} else {
-					//defaultResolver(protocol, &q, r)
-				}
-			case dns.TypeA, dns.TypeAAAA:
-				// DoH
-				doh := client.NewCloudFlareDNS(client.WithBaseURL(option.upstream))
-				doh.LookupAppend(r, q.Name, q.Qtype)
+	r := new(dns.Msg)
+	r.SetReply(msg)
+	r.RecursionAvailable = msg.RecursionDesired
+	r.Authoritative = true
+	r.SetRcode(msg, dns.RcodeSuccess)
+
+	for _, q := range msg.Question {
+		switch q.Qtype {
+		default:
+			defaultResolver(f.option.protocol, &q, r)
+		case dns.TypePTR:
+			//1.0.0.127.in-addr.arpa.
+			if dns.Fqdn(q.Name) == "1.0.0.127.in-addr.arpa." {
+				r.Answer = append(r.Answer, &dns.PTR{
+					Hdr: dns.RR_Header{Name: dns.Fqdn(q.Name), Rrtype: q.Qtype, Class: dns.ClassINET, Ttl: 0},
+					Ptr: dns.Fqdn(q.Name),
+				})
+			} else {
+				defaultResolver(f.option.protocol, &q, r)
 			}
+		case dns.TypeA, dns.TypeAAAA:
+			// DoH
+			doh := client.NewGoogleDNS(func(option *client.Option) {
+				option.ClientIP = f.option.clientIP
+				option.InsecureSkipVerify = f.option.insecureSkipVerify
+			})
+			doh.LookupAppend(r, q.Name, q.Qtype)
 		}
+	}
 
-		err := writer.WriteMsg(r)
-		if err != nil {
-			logrus.Warnf("Error: Writing Response:%v\n", err)
-		}
-		_ = writer.Close()
+	err := writer.WriteMsg(r)
+	if err != nil {
+		logrus.Warnf("Error: Writing Response:%v\n", err)
+	}
+	_ = writer.Close()
 
-	})
+}
 
-	logrus.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", option.address, option.port), option.protocol, h))
+func defaultResolver(protocol string, q *dns.Question, resp *dns.Msg) {
+
+	defaultResolver := &dns.Client{
+		Net:          protocol,
+		ReadTimeout:  1000 * time.Second,
+		WriteTimeout: 1000 * time.Second,
+	}
+
+	ret, _, err := defaultResolver.Exchange(
+		new(dns.Msg).SetQuestion(q.Name, q.Qtype),
+		"114.114.114.114:53",
+	)
+	// handle failed
+	if err != nil {
+		resp.SetRcode(resp, dns.RcodeServerFailure)
+		logrus.Printf("Error: DNS:" + err.Error())
+		return
+	}
+	// domain not found
+	if ret != nil && (ret.Rcode != dns.RcodeSuccess || len(ret.Answer) == 0) {
+		resp.SetRcode(resp, dns.RcodeNameError)
+		return
+	}
+	resp.Answer = append(resp.Answer, ret.Answer[0])
 }

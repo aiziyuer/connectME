@@ -10,7 +10,7 @@ func GetPublicIP() (string, error) {
 
 	clientIP, err := ipinfo.NewClient(&http.Client{
 		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
+			//Proxy: http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 			},
