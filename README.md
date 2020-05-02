@@ -24,3 +24,9 @@ dig www.google.com +short
 nslookup -vc www.google.com 8.8.8.8
 
 ```
+
+
+## FAQ
+
+- [Using Cobra With Golang](https://o-my-chenjian.com/2017/09/20/Using-Cobra-With-Golang/)
+- [goproxy](https://goproxy.io/zh/)
