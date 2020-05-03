@@ -25,6 +25,29 @@ nslookup -vc www.google.com 8.8.8.8
 
 ```
 
+## 开机启动
+
+```bash
+cat <<'EOF' >/etc/systemd/system/connectDNS.service
+[Unit]
+Description=connectDNS
+Documentation=https://github.com/aiziyuer/connectDNS
+After=network.target
+
+[Service]
+Type=simple
+Environment="HTTP_PROXY=127.0.0.1:3128"
+Environment="HTTPS_PROXY=127.0.0.1:3128"
+ExecStart=/usr/bin/connectDNS
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable connectDNS
+systemctl start connectDNS
+```
 
 ## FAQ
 

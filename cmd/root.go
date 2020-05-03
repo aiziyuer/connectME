@@ -56,13 +56,13 @@ func init() {
 			logrus.Fatal("public ip can't found, can't start.")
 		}
 		result, _ := m.Answer[0].(*dns.A)
-		logrus.Infof("public_ip:\t%s.", result.A)
+		logrus.Infof("public_ip: %s.", result.A)
 
 		if httpproxy.FromEnvironment().HTTPProxy != "" {
-			logrus.Infof("http_proxy:\t%s.", httpproxy.FromEnvironment().HTTPProxy)
+			logrus.Infof("http_proxy: %s.", httpproxy.FromEnvironment().HTTPProxy)
 		}
 		if httpproxy.FromEnvironment().HTTPSProxy != "" {
-			logrus.Infof("https_proxy:\t%s.", httpproxy.FromEnvironment().HTTPSProxy)
+			logrus.Infof("https_proxy: %s.", httpproxy.FromEnvironment().HTTPSProxy)
 		}
 
 		// dig @127.0.0.1 -p53 www.google.com A +short
@@ -82,7 +82,7 @@ func init() {
 				}
 			})
 			h.HandleFunc(".", s.Handler)
-			logrus.Infof("%s_server:\t%s:%d", protocol, listenAddress, listenPort)
+			logrus.Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
 			logrus.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
 		}()
 
@@ -103,7 +103,7 @@ func init() {
 				}
 			})
 			h.HandleFunc(".", s.Handler)
-			logrus.Infof("%s_server:\t%s:%d", protocol, listenAddress, listenPort)
+			logrus.Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
 			logrus.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
 		}()
 
