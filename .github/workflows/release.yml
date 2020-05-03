@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, darwin, windows]
+        arch: [386, amd64]
+    steps:
+      - uses: actions/checkout@master
+      - name: set env
+        run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF:10}
+      - name: add version
+        run: |
+          sed -i '/version = "dev"/d' cmd/version.go
+          cat <<EOF >>cmd/version.go
+          var version = "$RELEASE_VERSION($GITHUB_SHA)"
+          EOF
+      - name: compile and release
+        uses: ngs/go-release.action@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CGO_ENABLED: 0
+          GOOS: ${{matrix.os}}
+          GOARCH: ${{matrix.arch}}
