@@ -23,7 +23,7 @@ jobs:
           var version = "$RELEASE_VERSION($GITHUB_SHA)"
           EOF
       - name: compile and release
-        uses: ngs/go-release.action@latest
+        uses: ngs/go-release.action@v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CGO_ENABLED: 0

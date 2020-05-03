@@ -122,6 +122,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
 		"config file (default is $HOME/.connectDNS/config.toml)",
 	)
+
+	rootCmd.Version = version
 }
 
 func initConfig() {
