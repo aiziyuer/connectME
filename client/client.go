@@ -3,7 +3,9 @@ package client
 import (
 	"fmt"
 	"github.com/miekg/dns"
+	"net/http"
 	"strings"
+	"time"
 )
 
 // Client is an interface all clients should conform to.
@@ -13,16 +15,33 @@ type Client interface {
 }
 
 type Option struct {
-	BaseURL            string
-	InsecureSkipVerify bool
-	ClientIP           string // client public ip, for cdn
+	Endpoint string
+	Client   *http.Client
+	ClientIP string // client public ip, for cdn
 }
 type ModOption func(option *Option)
 
 func WithBaseURL(s string) ModOption {
 	return func(option *Option) {
-		option.BaseURL = s
+		option.Endpoint = s
 	}
+}
+
+func NewTraditionDNS(modOptions ...ModOption) *Tradition {
+
+	option := Option{
+		Endpoint: "ns.google.com:53",
+		Client: &http.Client{
+			Transport: http.DefaultTransport,
+		},
+	}
+
+	for _, fn := range modOptions {
+		fn(&option)
+	}
+
+	return &Tradition{option: &option}
+
 }
 
 func NewCloudFlareDNS(modOptions ...ModOption) *DoH {
@@ -30,7 +49,7 @@ func NewCloudFlareDNS(modOptions ...ModOption) *DoH {
 	return NewDoH(func(option *Option) {
 
 		// default for cloudflare dns
-		option.BaseURL = "https://1.1.1.1/dns-query"
+		option.Endpoint = "https://1.1.1.1/dns-query"
 
 		// custom
 		for _, fn := range modOptions {
@@ -44,7 +63,7 @@ func NewGoogleDNS(modOptions ...ModOption) *DoH {
 	return NewDoH(func(option *Option) {
 
 		// default for google dns
-		option.BaseURL = "https://8.8.8.8/resolve"
+		option.Endpoint = "https://8.8.8.8/resolve"
 
 		// custom
 		for _, fn := range modOptions {
@@ -52,15 +71,15 @@ func NewGoogleDNS(modOptions ...ModOption) *DoH {
 		}
 
 		// no need set client ip
-		if len(option.ClientIP) == 0 || strings.Contains(option.BaseURL, "edns_client_subnet=") {
+		if len(option.ClientIP) == 0 || strings.Contains(option.Endpoint, "edns_client_subnet=") {
 			return
 		}
 
 		// try to set client ip
-		if strings.Contains(option.BaseURL, "?") {
-			option.BaseURL = fmt.Sprintf("%s&edns_client_subnet=%s", option.BaseURL, option.ClientIP)
+		if strings.Contains(option.Endpoint, "?") {
+			option.Endpoint = fmt.Sprintf("%s&edns_client_subnet=%s", option.Endpoint, option.ClientIP)
 		} else {
-			option.BaseURL = fmt.Sprintf("%s?edns_client_subnet=%s", option.BaseURL, option.ClientIP)
+			option.Endpoint = fmt.Sprintf("%s?edns_client_subnet=%s", option.Endpoint, option.ClientIP)
 		}
 
 	})
@@ -69,8 +88,11 @@ func NewGoogleDNS(modOptions ...ModOption) *DoH {
 func NewDoH(modOptions ...ModOption) *DoH {
 
 	option := Option{
-		BaseURL:            "https://8.8.8.8/resolve",
-		InsecureSkipVerify: false,
+		Endpoint: "https://8.8.8.8/resolve",
+		Client: &http.Client{
+			Timeout:   time.Second,
+			Transport: http.DefaultTransport,
+		},
 	}
 
 	for _, fn := range modOptions {

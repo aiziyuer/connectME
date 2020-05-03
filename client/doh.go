@@ -1,7 +1,6 @@
 package client
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
@@ -9,7 +8,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"time"
 )
 
 type DoH struct {
@@ -27,17 +25,7 @@ func (c *DoH) Lookup(name string, rType uint16) *dns.Msg {
 
 func (c *DoH) LookupAppend(r *dns.Msg, name string, rType uint16) {
 
-	client := http.Client{
-		Timeout: time.Second * 20,
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: c.option.InsecureSkipVerify,
-			},
-		},
-	}
-
-	req, err := http.NewRequest("GET", c.option.BaseURL, nil)
+	req, err := http.NewRequest("GET", c.option.Endpoint, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,7 +39,7 @@ func (c *DoH) LookupAppend(r *dns.Msg, name string, rType uint16) {
 	//q.Add("do", "false") // ignore DNSSEC
 	req.URL.RawQuery = q.Encode()
 
-	res, err := client.Do(req)
+	res, err := c.option.Client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}

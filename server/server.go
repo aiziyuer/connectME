@@ -4,14 +4,15 @@ import (
 	"github.com/aiziyuer/connectDNS/client"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
+	"net/http"
 	"time"
 )
 
 type Option struct {
-	protocol           string
-	upstream           string
-	clientIP           string
-	insecureSkipVerify bool
+	protocol string
+	upstream string
+	clientIP string
+	client   *http.Client
 }
 
 type ModOption func(option *Option)
@@ -47,7 +48,7 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 	for _, q := range msg.Question {
 		switch q.Qtype {
 		default:
-			defaultResolver(f.option.protocol, &q, r)
+			DefaultResolver(f.option.protocol, &q, r)
 		case dns.TypePTR:
 			//1.0.0.127.in-addr.arpa.
 			if dns.Fqdn(q.Name) == "1.0.0.127.in-addr.arpa." {
@@ -56,13 +57,14 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 					Ptr: dns.Fqdn(q.Name),
 				})
 			} else {
-				defaultResolver(f.option.protocol, &q, r)
+				DefaultResolver(f.option.protocol, &q, r)
 			}
 		case dns.TypeA, dns.TypeAAAA:
+
 			// DoH
 			doh := client.NewGoogleDNS(func(option *client.Option) {
 				option.ClientIP = f.option.clientIP
-				option.InsecureSkipVerify = f.option.insecureSkipVerify
+				option.Client = f.option.client
 			})
 			doh.LookupAppend(r, q.Name, q.Qtype)
 		}
@@ -76,7 +78,7 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 
 }
 
-func defaultResolver(protocol string, q *dns.Question, resp *dns.Msg) {
+func DefaultResolver(protocol string, q *dns.Question, resp *dns.Msg) {
 
 	defaultResolver := &dns.Client{
 		Net:          protocol,
