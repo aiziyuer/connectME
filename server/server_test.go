@@ -22,9 +22,9 @@ func TestForwardServer(t *testing.T) {
 	protocol := "udp"
 	h := dns.NewServeMux()
 	s := NewForwardServer(func(option *Option) {
-		option.clientIP = result.A.String()
-		option.protocol = protocol
-		option.client = &http.Client{
+		option.ClientIP = result.A.String()
+		option.Protocol = protocol
+		option.Client = &http.Client{
 			Transport: &http.Transport{
 				Proxy: http.ProxyFromEnvironment,
 				TLSClientConfig: &tls.Config{

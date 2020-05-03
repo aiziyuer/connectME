@@ -16,28 +16,30 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto/tls"
 	"fmt"
+	"github.com/aiziyuer/connectDNS/client"
+	"github.com/aiziyuer/connectDNS/server"
+	"github.com/miekg/dns"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/net/http/httpproxy"
+	"net/http"
 	"os"
+	"path"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
+var cfgFile, listenAddress string
+var listenPort int
+var insecure bool
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use: "connectDNS",
-	//Short: "A brief description of your application",
-	//Long: ``,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -48,21 +50,82 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		m := client.NewTraditionDNS().Lookup("o-o.myaddr.l.google.com", dns.TypeTXT)
+		if m.Rcode != dns.RcodeSuccess {
+			logrus.Fatal("public ip can't found, can't start.")
+		}
+		result, _ := m.Answer[0].(*dns.A)
+		logrus.Infof("public_ip:\t%s.", result.A)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.connectDNS.yaml)")
+		if httpproxy.FromEnvironment().HTTPProxy != "" {
+			logrus.Infof("http_proxy:\t%s.", httpproxy.FromEnvironment().HTTPProxy)
+		}
+		if httpproxy.FromEnvironment().HTTPSProxy != "" {
+			logrus.Infof("https_proxy:\t%s.", httpproxy.FromEnvironment().HTTPSProxy)
+		}
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+		// dig @127.0.0.1 -p53 www.google.com A +short
+		go func() {
+			protocol := "udp"
+			h := dns.NewServeMux()
+			s := server.NewForwardServer(func(option *server.Option) {
+				option.ClientIP = result.A.String()
+				option.Protocol = protocol
+				option.Client = &http.Client{
+					Transport: &http.Transport{
+						Proxy: http.ProxyFromEnvironment,
+						TLSClientConfig: &tls.Config{
+							InsecureSkipVerify: insecure,
+						},
+					},
+				}
+			})
+			h.HandleFunc(".", s.Handler)
+			logrus.Infof("%s_server:\t%s:%d", protocol, listenAddress, listenPort)
+			logrus.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
+		}()
+
+		// nslookup -vc www.google.com 127.0.0.1
+		go func() {
+			protocol := "tcp"
+			h := dns.NewServeMux()
+			s := server.NewForwardServer(func(option *server.Option) {
+				option.ClientIP = result.A.String()
+				option.Protocol = protocol
+				option.Client = &http.Client{
+					Transport: &http.Transport{
+						Proxy: http.ProxyFromEnvironment,
+						TLSClientConfig: &tls.Config{
+							InsecureSkipVerify: insecure,
+						},
+					},
+				}
+			})
+			h.HandleFunc(".", s.Handler)
+			logrus.Infof("%s_server:\t%s:%d", protocol, listenAddress, listenPort)
+			logrus.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
+		}()
+
+		select {}
+	}
+
+	rootCmd.PersistentFlags().IntVar(&listenPort, "port", 1053,
+		"listen server port",
+	)
+	rootCmd.PersistentFlags().StringVar(&listenAddress, "address", "0.0.0.0",
+		"listen server address",
+	)
+	rootCmd.PersistentFlags().BoolVar(&insecure, "insecure", false,
+		"allow insecure server connections when using SSL",
+	)
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
+		"config file (default is $HOME/.connectDNS/config.toml)",
+	)
 }
 
-// initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if cfgFile != "" {
-		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
@@ -72,14 +135,12 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name ".connectDNS" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".connectDNS")
+		viper.AddConfigPath(path.Join(home, ".connectDNS"))
+		viper.SetConfigName("config")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}

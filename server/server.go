@@ -9,10 +9,10 @@ import (
 )
 
 type Option struct {
-	protocol string
+	Protocol string
 	upstream string
-	clientIP string
-	client   *http.Client
+	ClientIP string
+	Client   *http.Client
 }
 
 type ModOption func(option *Option)
@@ -24,7 +24,7 @@ type ForwardServer struct {
 func NewForwardServer(modOptions ...ModOption) *ForwardServer {
 
 	option := Option{
-		protocol: "udp",
+		Protocol: "udp",
 		upstream: "",
 	}
 
@@ -48,7 +48,7 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 	for _, q := range msg.Question {
 		switch q.Qtype {
 		default:
-			DefaultResolver(f.option.protocol, &q, r)
+			DefaultResolver(f.option.Protocol, &q, r)
 		case dns.TypePTR:
 			//1.0.0.127.in-addr.arpa.
 			if dns.Fqdn(q.Name) == "1.0.0.127.in-addr.arpa." {
@@ -57,14 +57,14 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 					Ptr: dns.Fqdn(q.Name),
 				})
 			} else {
-				DefaultResolver(f.option.protocol, &q, r)
+				DefaultResolver(f.option.Protocol, &q, r)
 			}
 		case dns.TypeA, dns.TypeAAAA:
 
 			// DoH
 			doh := client.NewGoogleDNS(func(option *client.Option) {
-				option.ClientIP = f.option.clientIP
-				option.Client = f.option.client
+				option.ClientIP = f.option.ClientIP
+				option.Client = f.option.Client
 			})
 			doh.LookupAppend(r, q.Name, q.Qtype)
 		}
