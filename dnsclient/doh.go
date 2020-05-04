@@ -7,10 +7,7 @@ import (
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
-	"log"
 	"net"
-	"net/http"
 	"strconv"
 	"strings"
 )
@@ -28,81 +25,81 @@ func (c *DoH) Lookup(name string, rType uint16) *dns.Msg {
 	return ret
 }
 
+func (c *DoH) getClient() *resty.Client {
+	return resty.
+		NewWithClient(c.option.Client).
+		SetDebug(true)
+}
+
+func (c *DoH) handlerRR(item *DohCommon) (tmp dns.RR) {
+
+	switch gconv.Uint16(item.Type) {
+	case dns.TypeA:
+		tmp = &dns.A{
+			A: net.ParseIP(item.Data),
+		}
+	case dns.TypeAAAA:
+		tmp = &dns.AAAA{
+			AAAA: net.ParseIP(item.Data),
+		}
+	case dns.TypeTXT:
+		txt, err := strconv.Unquote(item.Data)
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+		tmp = &dns.TXT{
+			Txt: []string{txt},
+		}
+	case dns.TypeCNAME:
+		tmp = &dns.CNAME{
+			Target: item.Data,
+		}
+	case dns.TypeSOA:
+		s := strings.Split(item.Data, " ")
+		if len(s) < 7 {
+			return
+		}
+		tmp = &dns.SOA{
+			Ns:      s[0],
+			Mbox:    s[1],
+			Serial:  gconv.Uint32(s[2]),
+			Refresh: gconv.Uint32(s[3]),
+			Retry:   gconv.Uint32(s[4]),
+			Expire:  gconv.Uint32(s[5]),
+			Minttl:  gconv.Uint32(s[6]),
+		}
+
+	}
+
+	return
+}
+
 func (c *DoH) LookupAppend(r *dns.Msg, name string, rType uint16) {
 
-	req, err := http.NewRequest("GET", c.option.Endpoint, nil)
+	res, err := c.getClient().R().
+		EnableTrace().
+		SetHeaders(map[string]string{
+			"accept": "application/dns-json",
+		}).
+		SetQueryParams(map[string]string{
+			"name": name,
+			"type": dns.TypeToString[rType],
+			"cd":   "false", // ignore DNSSEC
+			"do":   "false", // ignore DNSSEC
+		}).
+		Get(c.option.Endpoint)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
-	req.Header.Add("accept", "application/dns-json")
-
-	q := req.URL.Query()
-	q.Add("name", name)
-	q.Add("type", dns.TypeToString[rType])
-	q.Add("cd", "false") // ignore DNSSEC
-	q.Add("do", "false") // ignore DNSSEC
-	req.URL.RawQuery = q.Encode()
-
-	res, err := c.option.Client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	resp := DohResponse{}
-	err = json.Unmarshal(body, &resp)
-	if err != nil {
-		log.Fatal(err)
+	var resp DohResponse
+	if err := json.NewDecoder(bytes.NewReader(res.Body())).Decode(&resp); err != nil {
+		logrus.Fatal(err)
 	}
 
 	for _, item := range resp.Answer {
-
-		var tmp dns.RR = nil
-
-		switch gconv.Uint16(item.Type) {
-		case dns.TypeA:
-			tmp = &dns.A{
-				A: net.ParseIP(item.Data),
-			}
-		case dns.TypeAAAA:
-			tmp = &dns.AAAA{
-				AAAA: net.ParseIP(item.Data),
-			}
-		case dns.TypeTXT:
-			txt, err := strconv.Unquote(item.Data)
-			if err != nil {
-				logrus.Error(err)
-				continue
-			}
-			tmp = &dns.TXT{
-				Txt: []string{txt},
-			}
-		case dns.TypeCNAME:
-			tmp = &dns.CNAME{
-				Target: item.Data,
-			}
-		case dns.TypeSOA:
-			s := strings.Split(item.Data, " ")
-			if len(s) < 7 {
-				continue
-			}
-			tmp = &dns.SOA{
-				Ns:      s[0],
-				Mbox:    s[1],
-				Serial:  gconv.Uint32(s[2]),
-				Refresh: gconv.Uint32(s[3]),
-				Retry:   gconv.Uint32(s[4]),
-				Expire:  gconv.Uint32(s[5]),
-				Minttl:  gconv.Uint32(s[6]),
-			}
-		}
-
-		if tmp != nil {
+		if tmp := c.handlerRR(item); tmp != nil {
 			tmp.Header().Name = dns.Fqdn(item.Name)
 			tmp.Header().Rrtype = gconv.Uint16(item.Type)
 			tmp.Header().Class = dns.ClassINET
@@ -112,30 +109,7 @@ func (c *DoH) LookupAppend(r *dns.Msg, name string, rType uint16) {
 	}
 
 	for _, item := range resp.Authority {
-		var tmp dns.RR = nil
-
-		switch gconv.Uint16(item.Type) {
-		case dns.TypeCNAME:
-			tmp = &dns.CNAME{
-				Target: item.Data,
-			}
-		case dns.TypeSOA:
-			s := strings.Split(item.Data, " ")
-			if len(s) < 7 {
-				continue
-			}
-			tmp = &dns.SOA{
-				Ns:      s[0],
-				Mbox:    s[1],
-				Serial:  gconv.Uint32(s[2]),
-				Refresh: gconv.Uint32(s[3]),
-				Retry:   gconv.Uint32(s[4]),
-				Expire:  gconv.Uint32(s[5]),
-				Minttl:  gconv.Uint32(s[6]),
-			}
-		}
-
-		if tmp != nil {
+		if tmp := c.handlerRR(item); tmp != nil {
 			tmp.Header().Name = dns.Fqdn(item.Name)
 			tmp.Header().Rrtype = gconv.Uint16(item.Type)
 			tmp.Header().Class = dns.ClassINET
@@ -214,19 +188,16 @@ type DohResponse struct {
 		Name string `json:"name"` // FQDN with trailing dot
 		Type int    `json:"type"` // Standard DNS RR type
 	} `json:"Question"`
-	Answer []struct {
-		Name string `json:"name"` // Always matches name in the Question section
-		Type int    `json:"type"` // Standard DNS RR type
-		TTL  int    `json:"TTL"`  // Record's time-to-live in seconds
-		Data string `json:"data"` // Data
-	} `json:"Answer"`
-	Authority []struct {
-		Name string `json:"name"` // Always matches name in the Question section
-		Type int    `json:"type"` // Standard DNS RR type
-		TTL  int    `json:"TTL"`  // Record's time-to-live in seconds
-		Data string `json:"data"` // Data
-	} `json:"Authority"`
+	Answer           []*DohCommon  `json:"Answer"`
+	Authority        []*DohCommon  `json:"Authority"`
 	Additional       []interface{} `json:"Additional"`
 	EdnsClientSubnet string        `json:"edns_client_subnet"` // IP address / scope prefix-length
 	Comment          string        `json:"Comment"`            // Diagnostics information in case of an error
+}
+
+type DohCommon struct {
+	Name string `json:"name"` // Always matches name in the Question section
+	Type int    `json:"type"` // Standard DNS RR type
+	TTL  int    `json:"TTL"`  // Record's time-to-live in seconds
+	Data string `json:"data"` // Data
 }
