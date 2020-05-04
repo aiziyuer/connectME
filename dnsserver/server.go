@@ -39,6 +39,12 @@ func NewForwardServer(modOptions ...ModOption) *ForwardServer {
 
 func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 
+	// DoH
+	doh := dnsclient.NewGoogleDNS(func(option *dnsclient.Option) {
+		option.ClientIP = f.option.ClientIP
+		option.Client = f.option.Client
+	})
+
 	r := new(dns.Msg)
 	r.SetReply(msg)
 	r.RecursionAvailable = msg.RecursionDesired
@@ -57,15 +63,10 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 					Ptr: dns.Fqdn(q.Name),
 				})
 			} else {
-				DefaultResolver(f.option.Protocol, &q, r)
+				doh.LookupAppend(r, q.Name, q.Qtype)
 			}
 		default:
 			// dns.TypeTXT, dns.TypeA, dns.TypeAAAA
-			// DoH
-			doh := dnsclient.NewGoogleDNS(func(option *dnsclient.Option) {
-				option.ClientIP = f.option.ClientIP
-				option.Client = f.option.Client
-			})
 			doh.LookupAppend(r, q.Name, q.Qtype)
 		}
 	}

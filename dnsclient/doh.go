@@ -28,48 +28,82 @@ func (c *DoH) Lookup(name string, rType uint16) *dns.Msg {
 func (c *DoH) getClient() *resty.Client {
 	return resty.
 		NewWithClient(c.option.Client).
-		SetDebug(true)
+		SetRetryCount(3).
+		SetDebug(false)
 }
 
-func (c *DoH) handlerRR(item *DohCommon) (tmp dns.RR) {
+func (c *DoH) handlerRR(item *DohCommon) (rr dns.RR) {
 
 	switch gconv.Uint16(item.Type) {
 	case dns.TypeA:
-		tmp = &dns.A{
+		rr = &dns.A{
 			A: net.ParseIP(item.Data),
 		}
 	case dns.TypeAAAA:
-		tmp = &dns.AAAA{
+		rr = &dns.AAAA{
 			AAAA: net.ParseIP(item.Data),
 		}
-	case dns.TypeTXT:
-		txt, err := strconv.Unquote(item.Data)
+	case dns.TypeMX:
+		d := strings.Split(item.Data, " ")
+		if len(d) < 2 {
+			return
+		}
+		rr = &dns.MX{
+			Preference: gconv.Uint16(d[0]),
+			Mx:         d[1],
+		}
+	case dns.TypeNS:
+		rr = &dns.NS{
+			Ns: item.Data,
+		}
+	case dns.TypePTR:
+		rr = &dns.PTR{
+			Ptr: item.Data,
+		}
+	case dns.TypeCNAME:
+		rr = &dns.CNAME{
+			Target: item.Data,
+		}
+	case dns.TypeSOA:
+		d := strings.Split(item.Data, " ")
+		if len(d) < 7 {
+			return
+		}
+		rr = &dns.SOA{
+			Ns:      d[0],
+			Mbox:    d[1],
+			Serial:  gconv.Uint32(d[2]),
+			Refresh: gconv.Uint32(d[3]),
+			Retry:   gconv.Uint32(d[4]),
+			Expire:  gconv.Uint32(d[5]),
+			Minttl:  gconv.Uint32(d[6]),
+		}
+	case dns.TypeDNSKEY:
+	case dns.TypeDS:
+	case dns.TypeDLV:
+	case dns.TypeSSHFP:
+	case dns.TypeNAPTR:
+	case dns.TypeSRV:
+		d := strings.Split(item.Data, " ")
+		if len(d) < 4 {
+			return
+		}
+		rr = &dns.SRV{
+			Priority: gconv.Uint16(d[0]),
+			Weight:   gconv.Uint16(d[1]),
+			Port:     gconv.Uint16(d[2]),
+			Target:   d[3],
+		}
+	case dns.TypeLOC:
+	case dns.TypeTXT, dns.TypeSPF, dns.TypeAVC:
+		d, err := strconv.Unquote(item.Data)
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
-		tmp = &dns.TXT{
-			Txt: []string{txt},
+		rr = &dns.SPF{
+			Txt: []string{d},
 		}
-	case dns.TypeCNAME:
-		tmp = &dns.CNAME{
-			Target: item.Data,
-		}
-	case dns.TypeSOA:
-		s := strings.Split(item.Data, " ")
-		if len(s) < 7 {
-			return
-		}
-		tmp = &dns.SOA{
-			Ns:      s[0],
-			Mbox:    s[1],
-			Serial:  gconv.Uint32(s[2]),
-			Refresh: gconv.Uint32(s[3]),
-			Retry:   gconv.Uint32(s[4]),
-			Expire:  gconv.Uint32(s[5]),
-			Minttl:  gconv.Uint32(s[6]),
-		}
-
 	}
 
 	return
@@ -83,10 +117,11 @@ func (c *DoH) LookupAppend(r *dns.Msg, name string, rType uint16) {
 			"accept": "application/dns-json",
 		}).
 		SetQueryParams(map[string]string{
-			"name": name,
-			"type": dns.TypeToString[rType],
-			"cd":   "false", // ignore DNSSEC
-			"do":   "false", // ignore DNSSEC
+			"edns_client_subnet": c.option.ClientIP,
+			"name":               name,
+			"type":               dns.TypeToString[rType],
+			"cd":                 "false", // ignore DNSSEC
+			"do":                 "false", // ignore DNSSEC
 		}).
 		Get(c.option.Endpoint)
 	if err != nil {
