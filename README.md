@@ -12,20 +12,20 @@ go get -u -v github.com/aiziyuer/connectDNS
 ```
 
 
-## 服务测试
+## Testing
 
 ```
 
-# 测试DNS解析
+# test with udp
 dig @127.0.0.1 -p1053 www.google.com +short
 dig www.google.com +short
 
-# 用tcp可以测试出正确定制
+# test via tcp
 nslookup -vc www.google.com 8.8.8.8
 
 ```
 
-## 开机启动
+## AutoStart
 
 ```bash
 cat <<'EOF' >/etc/systemd/system/connectDNS.service
@@ -40,6 +40,8 @@ Environment="HTTP_PROXY=127.0.0.1:3128"
 Environment="HTTPS_PROXY=127.0.0.1:3128"
 ExecStart=/usr/bin/connectDNS
 ProtectSystem=strict
+RestartSec=3
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
