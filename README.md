@@ -1,4 +1,6 @@
-connectDNS 
+connectDNS
+[![CI](https://github.com/aiziyuer/connectDNS/workflows/CI/badge.svg)](https://github.com/aiziyuer/connectDNS/actions?query=workflow%3ACI) 
+[![Release](https://github.com/aiziyuer/connectDNS/workflows/Release/badge.svg)](https://github.com/aiziyuer/connectDNS/releases/latest)
 ---
 
 `connectDNS` is a tool help you get dns record by doh server.
