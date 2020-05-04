@@ -1,7 +1,7 @@
-package server
+package dnsserver
 
 import (
-	"github.com/aiziyuer/connectDNS/client"
+	"github.com/aiziyuer/connectDNS/dnsclient"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -47,8 +47,8 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 
 	for _, q := range msg.Question {
 		switch q.Qtype {
-		default:
-			DefaultResolver(f.option.Protocol, &q, r)
+		//default:
+		//	DefaultResolver(f.option.Protocol, &q, r)
 		case dns.TypePTR:
 			//1.0.0.127.in-addr.arpa.
 			if dns.Fqdn(q.Name) == "1.0.0.127.in-addr.arpa." {
@@ -59,10 +59,10 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 			} else {
 				DefaultResolver(f.option.Protocol, &q, r)
 			}
-		case dns.TypeA, dns.TypeAAAA:
-
+		default:
+			// dns.TypeTXT, dns.TypeA, dns.TypeAAAA
 			// DoH
-			doh := client.NewGoogleDNS(func(option *client.Option) {
+			doh := dnsclient.NewGoogleDNS(func(option *dnsclient.Option) {
 				option.ClientIP = f.option.ClientIP
 				option.Client = f.option.Client
 			})
@@ -70,6 +70,7 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 		}
 	}
 
+	logrus.Infof("======= query record result ============\n%s", r)
 	err := writer.WriteMsg(r)
 	if err != nil {
 		logrus.Warnf("Error: Writing Response:%v\n", err)

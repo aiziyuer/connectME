@@ -1,8 +1,8 @@
-package server
+package dnsserver
 
 import (
 	"crypto/tls"
-	"github.com/aiziyuer/connectDNS/client"
+	"github.com/aiziyuer/connectDNS/dnsclient"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
 	"log"
@@ -12,7 +12,7 @@ import (
 
 func TestForwardServer(t *testing.T) {
 
-	m := client.NewTraditionDNS().Lookup("o-o.myaddr.l.google.com", dns.TypeTXT)
+	m := dnsclient.NewTraditionDNS().Lookup("o-o.myaddr.l.google.com", dns.TypeTXT)
 	if m.Rcode != dns.RcodeSuccess {
 		logrus.Fatal("public ip can't found, can't start.")
 	}

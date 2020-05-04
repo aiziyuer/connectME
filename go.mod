@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/aiziyuer/connectGW v0.0.0-20200419155610-638037ac8443 // indirect
+	github.com/go-resty/resty/v2 v2.2.0
 	github.com/gogf/gf v1.12.2
 	github.com/ipinfo/go-ipinfo v0.0.0-20191007010427-68bd5cb5356e
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a // indirect

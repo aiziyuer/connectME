@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/aiziyuer/connectDNS/client"
+	"github.com/aiziyuer/connectDNS/dnsclient"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
 	"log"
@@ -63,7 +63,7 @@ func TestUDPDnsForward(t *testing.T) {
 					}
 				case dns.TypeA, dns.TypeAAAA:
 					// DoH
-					doh := client.NewCloudFlareDNS(client.WithBaseURL("https://1.1.1.1/dns-query"))
+					doh := dnsclient.NewCloudFlareDNS(dnsclient.WithBaseURL("https://1.1.1.1/dns-query"))
 					doh.LookupAppend(r, q.Name, q.Qtype)
 				}
 			}

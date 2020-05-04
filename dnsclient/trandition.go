@@ -1,4 +1,4 @@
-package client
+package dnsclient
 
 import (
 	"context"
@@ -12,6 +12,42 @@ import (
 type Tradition struct {
 	option *Option
 	client *http.Client
+}
+
+func (c *Tradition) LookupAppend(r *dns.Msg, name string, rType uint16) {
+	panic("implement me")
+}
+
+func (c *Tradition) LookupA(name string) []*dns.A {
+	panic("implement me")
+}
+
+func (c *Tradition) LookupTXT(name string) *dns.TXT {
+
+	ctx := context.Background()
+	defer ctx.Done()
+	r := net.Resolver{
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{}
+			return d.DialContext(ctx, "udp", c.option.Endpoint)
+		},
+	}
+
+	result, err := r.LookupTXT(ctx, name)
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	return &dns.TXT{
+		Hdr: dns.RR_Header{
+			Name:     name,
+			Rrtype:   dns.TypeTXT,
+			Class:    dns.ClassINET,
+			Ttl:      0,
+			Rdlength: 0,
+		},
+		Txt: result,
+	}
 }
 
 func (c *Tradition) Lookup(name string, rType uint16) *dns.Msg {
@@ -57,6 +93,7 @@ func (c *Tradition) Lookup(name string, rType uint16) *dns.Msg {
 			},
 			A: net.ParseIP(ip),
 		}
+
 		ret.Answer = append(ret.Answer, rr)
 	}
 

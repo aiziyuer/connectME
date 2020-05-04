@@ -1,4 +1,4 @@
-package client
+package dnsclient
 
 import (
 	"crypto/tls"

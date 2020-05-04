@@ -16,17 +16,22 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/aiziyuer/connectDNS/client"
-	"github.com/aiziyuer/connectDNS/server"
+	"github.com/aiziyuer/connectDNS/dnsclient"
+	"github.com/aiziyuer/connectDNS/dnsserver"
+	"github.com/aiziyuer/connectDNS/regexputil"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/http/httpproxy"
+	"net"
 	"net/http"
 	"os"
 	"path"
+	"regexp"
+	"strings"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
@@ -51,12 +56,72 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
-		m := client.NewTraditionDNS().Lookup("o-o.myaddr.l.google.com", dns.TypeTXT)
-		if m.Rcode != dns.RcodeSuccess {
-			logrus.Fatal("public ip can't found, can't start.")
+
+		localHostMap := map[string]string{
+			"dns.google": "8.8.8.8",
 		}
-		result, _ := m.Answer[0].(*dns.A)
-		logrus.Infof("public_ip: %s.", result.A)
+
+		client := &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: insecure,
+				},
+				DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
+					host, port, err := net.SplitHostPort(addr)
+					if err != nil {
+						return nil, err
+					}
+
+					// local cache
+					logrus.Infof("host: %s", host)
+					if ip, ok := localHostMap[host]; ok {
+						var dialer net.Dialer
+						conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
+						if err == nil {
+							return
+						}
+					}
+
+					ips, err := net.DefaultResolver.LookupAddr(ctx, host)
+					if err != nil {
+						return nil, err
+					}
+					for _, ip := range ips {
+						var dialer net.Dialer
+						conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
+						if err == nil {
+							break
+						}
+					}
+					return
+				},
+			},
+		}
+
+		m := dnsclient.NewTraditionDNS(func(option *dnsclient.Option) {
+			option.Client = client
+		}).LookupTXT("o-o.myaddr.l.google.com")
+		if m.Txt == nil || len(m.Txt) == 0 {
+			logrus.Fatalf("public_ip can't get!")
+		}
+
+		ednsSubnet := ""
+		for _, txt := range m.Txt {
+			if strings.Contains(txt, "edns") {
+				r := regexp.MustCompile(`^edns0-client-subnet (?P<subnet>\S+)$`)
+				m := regexputil.NamedStringSubmatch(r, txt)
+				if len(m) > 0 {
+					ednsSubnet = m["subnet"]
+					break
+				}
+			}
+		}
+		if len(ednsSubnet) == 0 {
+			logrus.Fatalf("public_ip can't get!")
+		}
+
+		logrus.Infof("ednsSubnet: %s.", ednsSubnet)
 
 		if httpproxy.FromEnvironment().HTTPProxy != "" {
 			logrus.Infof("http_proxy: %s.", httpproxy.FromEnvironment().HTTPProxy)
@@ -69,17 +134,10 @@ func init() {
 		go func() {
 			protocol := "udp"
 			h := dns.NewServeMux()
-			s := server.NewForwardServer(func(option *server.Option) {
-				option.ClientIP = result.A.String()
+			s := dnsserver.NewForwardServer(func(option *dnsserver.Option) {
+				option.ClientIP = ednsSubnet
 				option.Protocol = protocol
-				option.Client = &http.Client{
-					Transport: &http.Transport{
-						Proxy: http.ProxyFromEnvironment,
-						TLSClientConfig: &tls.Config{
-							InsecureSkipVerify: insecure,
-						},
-					},
-				}
+				option.Client = client
 			})
 			h.HandleFunc(".", s.Handler)
 			logrus.Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
@@ -90,17 +148,10 @@ func init() {
 		go func() {
 			protocol := "tcp"
 			h := dns.NewServeMux()
-			s := server.NewForwardServer(func(option *server.Option) {
-				option.ClientIP = result.A.String()
+			s := dnsserver.NewForwardServer(func(option *dnsserver.Option) {
+				option.ClientIP = ednsSubnet
 				option.Protocol = protocol
-				option.Client = &http.Client{
-					Transport: &http.Transport{
-						Proxy: http.ProxyFromEnvironment,
-						TLSClientConfig: &tls.Config{
-							InsecureSkipVerify: insecure,
-						},
-					},
-				}
+				option.Client = client
 			})
 			h.HandleFunc(".", s.Handler)
 			logrus.Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)

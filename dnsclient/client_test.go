@@ -1,8 +1,7 @@
-package client
+package dnsclient
 
 import (
 	"crypto/tls"
-	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"testing"
@@ -11,8 +10,7 @@ import (
 func TestNewGoogleDNS(t *testing.T) {
 
 	client := NewGoogleDNS(func(option *Option) {
-		clientIP, _ := GetPublicIP()
-		option.ClientIP = clientIP
+		option.ClientIP = "60.186.195.38/32"
 		option.Client = &http.Client{
 			Transport: &http.Transport{
 				Proxy: http.ProxyFromEnvironment,
@@ -22,7 +20,7 @@ func TestNewGoogleDNS(t *testing.T) {
 			},
 		}
 	})
-	msg := client.Lookup("www.iqiyi.com", dns.TypeA)
+	msg := client.LookupA("www.iqiyi.com")
 
-	logrus.Info(msg.Answer[0])
+	logrus.Info(msg)
 }
