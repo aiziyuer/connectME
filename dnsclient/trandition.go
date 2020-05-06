@@ -14,15 +14,15 @@ type Tradition struct {
 	client *http.Client
 }
 
-func (c *Tradition) LookupAppend(r *dns.Msg, name string, rType uint16) {
+func (c *Tradition) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
 	panic("implement me")
 }
 
-func (c *Tradition) LookupA(name string) []*dns.A {
+func (c *Tradition) LookupRawA(name string) []*dns.A {
 	panic("implement me")
 }
 
-func (c *Tradition) LookupTXT(name string) *dns.TXT {
+func (c *Tradition) LookupRawTXT(name string) *dns.TXT {
 
 	ctx := context.Background()
 	defer ctx.Done()
@@ -50,7 +50,7 @@ func (c *Tradition) LookupTXT(name string) *dns.TXT {
 	}
 }
 
-func (c *Tradition) Lookup(name string, rType uint16) *dns.Msg {
+func (c *Tradition) LookupRaw(name string, rType uint16) *dns.Msg {
 
 	ret := new(dns.Msg)
 	ret.SetQuestion(name, rType)

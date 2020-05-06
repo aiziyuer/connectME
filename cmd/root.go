@@ -101,7 +101,7 @@ func init() {
 
 		m := dnsclient.NewTraditionDNS(func(option *dnsclient.Option) {
 			option.Client = client
-		}).LookupTXT("o-o.myaddr.l.google.com")
+		}).LookupRawTXT("o-o.myaddr.l.google.com")
 		if m.Txt == nil || len(m.Txt) == 0 {
 			logrus.Fatalf("public_ip can't get!")
 		}

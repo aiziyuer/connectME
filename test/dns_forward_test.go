@@ -64,7 +64,7 @@ func TestUDPDnsForward(t *testing.T) {
 				case dns.TypeA, dns.TypeAAAA:
 					// DoH
 					doh := dnsclient.NewCloudFlareDNS(dnsclient.WithBaseURL("https://1.1.1.1/dns-query"))
-					doh.LookupAppend(r, q.Name, q.Qtype)
+					doh.LookupRawAppend(r, q.Name, q.Qtype)
 				}
 			}
 

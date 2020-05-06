@@ -20,7 +20,7 @@ func TestNewGoogleDNS(t *testing.T) {
 			},
 		}
 	})
-	msg := client.LookupA("www.iqiyi.com")
+	msg := client.LookupRawA("www.iqiyi.com")
 
 	logrus.Info(msg)
 }

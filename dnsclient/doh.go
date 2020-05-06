@@ -16,11 +16,11 @@ type DoH struct {
 	option *Option
 }
 
-func (c *DoH) Lookup(name string, rType uint16) *dns.Msg {
+func (c *DoH) LookupRaw(name string, rType uint16) *dns.Msg {
 
 	ret := new(dns.Msg)
 	ret.SetQuestion(name, rType)
-	c.LookupAppend(ret, name, rType)
+	c.LookupRawAppend(ret, name, rType)
 
 	return ret
 }
@@ -109,7 +109,7 @@ func (c *DoH) handlerRR(item *DohCommon) (rr dns.RR) {
 	return
 }
 
-func (c *DoH) LookupAppend(r *dns.Msg, name string, rType uint16) {
+func (c *DoH) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
 
 	res, err := c.getClient().R().
 		EnableTrace().
@@ -155,11 +155,11 @@ func (c *DoH) LookupAppend(r *dns.Msg, name string, rType uint16) {
 
 }
 
-func (c *DoH) LookupTXT(name string) *dns.TXT {
+func (c *DoH) LookupRawTXT(name string) *dns.TXT {
 	return nil
 }
 
-func (c *DoH) LookupA(name string) (result []*dns.A) {
+func (c *DoH) LookupRawA(name string) (result []*dns.A) {
 
 	result = make([]*dns.A, 0)
 

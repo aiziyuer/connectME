@@ -12,7 +12,7 @@ import (
 
 func TestForwardServer(t *testing.T) {
 
-	m := dnsclient.NewTraditionDNS().Lookup("o-o.myaddr.l.google.com", dns.TypeTXT)
+	m := dnsclient.NewTraditionDNS().LookupRaw("o-o.myaddr.l.google.com", dns.TypeTXT)
 	if m.Rcode != dns.RcodeSuccess {
 		logrus.Fatal("public ip can't found, can't start.")
 	}

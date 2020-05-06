@@ -63,11 +63,11 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 					Ptr: dns.Fqdn(q.Name),
 				})
 			} else {
-				doh.LookupAppend(r, q.Name, q.Qtype)
+				doh.LookupRawAppend(r, q.Name, q.Qtype)
 			}
 		default:
 			// dns.TypeTXT, dns.TypeA, dns.TypeAAAA
-			doh.LookupAppend(r, q.Name, q.Qtype)
+			doh.LookupRawAppend(r, q.Name, q.Qtype)
 		}
 	}
 

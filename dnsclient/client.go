@@ -8,12 +8,11 @@ import (
 	"time"
 )
 
-// Client is an interface all clients should conform to.
-type Client interface {
-	Lookup(name string, rType uint16) *dns.Msg
-	LookupAppend(r *dns.Msg, name string, rType uint16)
-	LookupA(name string) []*dns.A
-	LookupTXT(name string) *dns.TXT
+type CustomResolver interface {
+	LookupRaw(name string, rType uint16) *dns.Msg
+	LookupRawAppend(r *dns.Msg, name string, rType uint16)
+	LookupRawA(name string) []*dns.A
+	LookupRawTXT(name string) *dns.TXT
 }
 
 type Option struct {
@@ -29,7 +28,7 @@ func WithBaseURL(s string) ModOption {
 	}
 }
 
-func NewTraditionDNS(modOptions ...ModOption) Client {
+func NewTraditionDNS(modOptions ...ModOption) CustomResolver {
 
 	option := Option{
 		Endpoint: "8.8.8.8:53",
@@ -46,7 +45,7 @@ func NewTraditionDNS(modOptions ...ModOption) Client {
 
 }
 
-func NewCloudFlareDNS(modOptions ...ModOption) Client {
+func NewCloudFlareDNS(modOptions ...ModOption) CustomResolver {
 
 	return NewDoH(func(option *Option) {
 
@@ -61,7 +60,7 @@ func NewCloudFlareDNS(modOptions ...ModOption) Client {
 	})
 }
 
-func NewGoogleDNS(modOptions ...ModOption) Client {
+func NewGoogleDNS(modOptions ...ModOption) CustomResolver {
 	return NewDoH(func(option *Option) {
 
 		// default for google dns
@@ -87,7 +86,7 @@ func NewGoogleDNS(modOptions ...ModOption) Client {
 	})
 }
 
-func NewDoH(modOptions ...ModOption) Client {
+func NewDoH(modOptions ...ModOption) CustomResolver {
 
 	option := Option{
 		Endpoint: "https://8.8.8.8/resolve",
