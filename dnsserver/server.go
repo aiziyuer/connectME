@@ -71,7 +71,11 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 		}
 	}
 
-	log.Debug(gconv.String(r))
+	if len(r.Answer) == 0 {
+		log.Warn(gconv.String(r))
+	} else {
+		log.Debug(gconv.String(r))
+	}
 	err := writer.WriteMsg(r)
 	if err != nil {
 		log.Warnf("Error: Writing Response:%v\n", err)
