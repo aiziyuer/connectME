@@ -82,6 +82,7 @@ func setupLogs() {
 		},
 	})
 
+	log.SetLevel(log.DebugLevel)
 	log.SetReportCaller(true)
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors:   true,
@@ -91,7 +92,6 @@ func setupLogs() {
 }
 
 func main() {
-
 	setupLogs()
 	cmd.Execute()
 }
