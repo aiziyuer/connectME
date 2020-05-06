@@ -23,6 +23,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 )
 
 type WriterHook struct {
@@ -64,14 +65,14 @@ func setupLogs() {
 		},
 	})
 
-	logPath := "/var/log/connectDNS/connectDNS.log"
-	_ = gfile.Mkdir(gfile.Dir(logPath))
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logDir := "/var/log/connectDNS"
+	_ = gfile.Mkdir(gfile.Dir(logDir))
+	traceLogFile, err := os.OpenFile(path.Join(logDir, "trace.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		panic(fmt.Sprintf("log file(%s) open failed: %s", logPath, err))
+		panic(fmt.Sprintf("log file(%s) open failed: %s", path.Join(logDir, "trace.log"), err))
 	}
 	log.AddHook(&WriterHook{ // Send info and debug logs to stdout
-		Writer: logFile,
+		Writer: traceLogFile,
 		LogLevels: []log.Level{
 			log.PanicLevel,
 			log.FatalLevel,
@@ -79,6 +80,21 @@ func setupLogs() {
 			log.WarnLevel,
 			log.InfoLevel,
 			log.DebugLevel,
+			log.TraceLevel,
+		},
+	})
+
+	warnLogFile, err := os.OpenFile(path.Join(logDir, "warn.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(fmt.Sprintf("log file(%s) open failed: %s", path.Join(logDir, "warn.log"), err))
+	}
+	log.AddHook(&WriterHook{ // Send info and debug logs to stdout
+		Writer: warnLogFile,
+		LogLevels: []log.Level{
+			log.PanicLevel,
+			log.FatalLevel,
+			log.ErrorLevel,
+			log.WarnLevel,
 		},
 	})
 
