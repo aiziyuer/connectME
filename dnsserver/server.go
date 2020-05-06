@@ -3,7 +3,7 @@ package dnsserver
 import (
 	"github.com/aiziyuer/connectDNS/dnsclient"
 	"github.com/miekg/dns"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 )
@@ -71,10 +71,10 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 		}
 	}
 
-	logrus.Infof("======= query record result ============\n%s", r)
+	log.Infof("======= query record result ============\n%s", r)
 	err := writer.WriteMsg(r)
 	if err != nil {
-		logrus.Warnf("Error: Writing Response:%v\n", err)
+		log.Warnf("Error: Writing Response:%v\n", err)
 	}
 	_ = writer.Close()
 
@@ -95,7 +95,7 @@ func DefaultResolver(protocol string, q *dns.Question, resp *dns.Msg) {
 	// handle failed
 	if err != nil {
 		resp.SetRcode(resp, dns.RcodeServerFailure)
-		logrus.Printf("Error: DNS:" + err.Error())
+		log.Printf("Error: DNS:" + err.Error())
 		return
 	}
 	// domain not found

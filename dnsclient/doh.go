@@ -6,7 +6,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"net/url"
 	"strconv"
@@ -99,7 +99,7 @@ func (c *DoH) handlerRR(item *DohCommon) (rr dns.RR) {
 	case dns.TypeTXT, dns.TypeSPF, dns.TypeAVC:
 		d, err := strconv.Unquote(item.Data)
 		if err != nil {
-			logrus.Error(err)
+			log.Error(err)
 			return
 		}
 		rr = &dns.SPF{
@@ -135,12 +135,12 @@ func (c *DoH) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
 
 	res, err := request.Get(endpoint)
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 
 	var resp DohResponse
 	if err := json.NewDecoder(bytes.NewReader(res.Body())).Decode(&resp); err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 
 	for _, item := range resp.Answer {
@@ -188,12 +188,12 @@ func (c *DoH) LookupRawA(name string) (result []*dns.A) {
 		}).
 		Get(c.option.Endpoint)
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 
 	var resp DohResponse
 	if err := json.NewDecoder(bytes.NewReader(res.Body())).Decode(&resp); err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 
 	for _, answer := range resp.Answer {

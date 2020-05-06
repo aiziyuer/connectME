@@ -4,14 +4,12 @@ import (
 	"context"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"net"
-	"net/http"
 )
 
 type Tradition struct {
 	option *Option
-	client *http.Client
 }
 
 func (c *Tradition) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
@@ -35,7 +33,7 @@ func (c *Tradition) LookupRawTXT(name string) *dns.TXT {
 
 	result, err := r.LookupTXT(ctx, name)
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
 	}
 
 	return &dns.TXT{
@@ -72,13 +70,13 @@ func (c *Tradition) LookupRaw(name string, rType uint16) *dns.Msg {
 		ips, err = r.LookupTXT(ctx, name)
 		if err != nil {
 			ret.SetRcode(ret, dns.RcodeBadName)
-			logrus.Error(err)
+			log.Error(err)
 		}
 	case dns.TypeA:
 		ips, err = r.LookupAddr(ctx, name)
 		if err != nil {
 			ret.SetRcode(ret, dns.RcodeBadName)
-			logrus.Error(err)
+			log.Error(err)
 		}
 	default:
 		ret.SetRcode(ret, dns.RcodeNotImplemented)

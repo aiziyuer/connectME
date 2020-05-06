@@ -2,7 +2,7 @@ package dnsclient
 
 import (
 	"crypto/tls"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"testing"
 )
@@ -22,5 +22,5 @@ func TestNewGoogleDNS(t *testing.T) {
 	})
 	msg := client.LookupRawA("www.iqiyi.com")
 
-	logrus.Info(msg)
+	log.Info(msg)
 }

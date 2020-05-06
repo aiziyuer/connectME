@@ -22,10 +22,12 @@ import (
 	"github.com/aiziyuer/connectDNS/dnsclient"
 	"github.com/aiziyuer/connectDNS/dnsserver"
 	"github.com/aiziyuer/connectDNS/regexputil"
+	"github.com/gogf/gf/os/gfile"
 	"github.com/miekg/dns"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/http/httpproxy"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -46,6 +48,25 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+
+	logPath := "/var/log/connectDNS/connectDNS.log"
+	logDir := gfile.Dir(logPath)
+	err := gfile.Mkdir(logDir)
+	if err != nil {
+		panic(fmt.Sprintf("log dir(%s) create failed: %s", logDir, err))
+	}
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(fmt.Sprintf("log file(%s) open failed: %s", logPath, err))
+	}
+
+	log.SetOutput(io.MultiWriter(os.Stdout, logFile))
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors:   true,
+		TimestampFormat: "2006-01-02 15:04:05",
+		FullTimestamp:   false,
+	})
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -74,7 +95,7 @@ func init() {
 					}
 
 					// local cache
-					logrus.Infof("host: %s", host)
+					log.Infof("host: %s", host)
 					if ip, ok := localHostMap[host]; ok {
 						var dialer net.Dialer
 						conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
@@ -103,7 +124,7 @@ func init() {
 			option.Client = client
 		}).LookupRawTXT("o-o.myaddr.l.google.com")
 		if m.Txt == nil || len(m.Txt) == 0 {
-			logrus.Fatalf("public_ip can't get!")
+			log.Fatalf("public_ip can't get!")
 		}
 
 		ednsSubnet := ""
@@ -118,16 +139,16 @@ func init() {
 			}
 		}
 		if len(ednsSubnet) == 0 {
-			logrus.Fatalf("public_ip can't get!")
+			log.Fatalf("public_ip can't get!")
 		}
 
-		logrus.Infof("ednsSubnet: %s.", ednsSubnet)
+		log.Infof("ednsSubnet: %s.", ednsSubnet)
 
 		if httpproxy.FromEnvironment().HTTPProxy != "" {
-			logrus.Infof("http_proxy: %s.", httpproxy.FromEnvironment().HTTPProxy)
+			log.Infof("http_proxy: %s.", httpproxy.FromEnvironment().HTTPProxy)
 		}
 		if httpproxy.FromEnvironment().HTTPSProxy != "" {
-			logrus.Infof("https_proxy: %s.", httpproxy.FromEnvironment().HTTPSProxy)
+			log.Infof("https_proxy: %s.", httpproxy.FromEnvironment().HTTPSProxy)
 		}
 
 		// dig @127.0.0.1 -p53 www.google.com A +short
@@ -140,8 +161,8 @@ func init() {
 				option.Client = client
 			})
 			h.HandleFunc(".", s.Handler)
-			logrus.Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
-			logrus.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
+			log.Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
+			log.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
 		}()
 
 		// nslookup -vc www.google.com 127.0.0.1
@@ -154,8 +175,8 @@ func init() {
 				option.Client = client
 			})
 			h.HandleFunc(".", s.Handler)
-			logrus.Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
-			logrus.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
+			log.Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
+			log.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
 		}()
 
 		select {}

@@ -4,8 +4,7 @@ import (
 	"crypto/tls"
 	"github.com/aiziyuer/connectDNS/dnsclient"
 	"github.com/miekg/dns"
-	"github.com/sirupsen/logrus"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"testing"
 )
@@ -14,10 +13,10 @@ func TestForwardServer(t *testing.T) {
 
 	m := dnsclient.NewTraditionDNS().LookupRaw("o-o.myaddr.l.google.com", dns.TypeTXT)
 	if m.Rcode != dns.RcodeSuccess {
-		logrus.Fatal("public ip can't found, can't start.")
+		log.Fatal("public ip can't found, can't start.")
 	}
 	result, _ := m.Answer[0].(*dns.A)
-	logrus.Info(result.A)
+	log.Info(result.A)
 
 	protocol := "udp"
 	h := dns.NewServeMux()
