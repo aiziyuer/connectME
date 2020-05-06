@@ -2,6 +2,7 @@ package dnsserver
 
 import (
 	"github.com/aiziyuer/connectDNS/dnsclient"
+	"github.com/gogf/gf/text/gstr"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
@@ -57,7 +58,7 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 		//	DefaultResolver(f.option.Protocol, &q, r)
 		case dns.TypePTR:
 			//1.0.0.127.in-addr.arpa.
-			if dns.Fqdn(q.Name) == "1.0.0.127.in-addr.arpa." {
+			if dns.Fqdn(q.Name) == "1.0.0.127.in-addr.arpa." || gstr.HasSuffix(dns.Fqdn(q.Name), "10.10.10.in-addr.arpa.") {
 				r.Answer = append(r.Answer, &dns.PTR{
 					Hdr: dns.RR_Header{Name: dns.Fqdn(q.Name), Rrtype: q.Qtype, Class: dns.ClassINET, Ttl: 0},
 					Ptr: dns.Fqdn(q.Name),
