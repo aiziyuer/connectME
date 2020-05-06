@@ -2,6 +2,7 @@ package dnsclient
 
 import (
 	"fmt"
+	"github.com/gogf/gf/encoding/gurl"
 	"github.com/miekg/dns"
 	"net/http"
 	"strings"
@@ -19,6 +20,7 @@ type Option struct {
 	Endpoint string
 	Client   *http.Client
 	ClientIP string // dnsclient public ip, for cdn
+	Hosts    map[string]string
 }
 type ModOption func(option *Option)
 
@@ -50,7 +52,7 @@ func NewCloudFlareDNS(modOptions ...ModOption) CustomResolver {
 	return NewDoH(func(option *Option) {
 
 		// default for cloudflare dns
-		option.Endpoint = "https://1.1.1.1/dns-query"
+		option.Endpoint = "https://cloudflare-dns.com/dns-query"
 
 		// custom
 		for _, fn := range modOptions {
@@ -64,7 +66,7 @@ func NewGoogleDNS(modOptions ...ModOption) CustomResolver {
 	return NewDoH(func(option *Option) {
 
 		// default for google dns
-		option.Endpoint = "https://8.8.8.8/resolve"
+		option.Endpoint = "https://dns.google/resolve"
 
 		// custom
 		for _, fn := range modOptions {
@@ -78,9 +80,11 @@ func NewGoogleDNS(modOptions ...ModOption) CustomResolver {
 
 		// try to set dnsclient ip
 		if strings.Contains(option.Endpoint, "?") {
-			option.Endpoint = fmt.Sprintf("%s&edns_client_subnet=%s", option.Endpoint, option.ClientIP)
+			option.Endpoint =
+				fmt.Sprintf("%s&edns_client_subnet=%s", option.Endpoint, gurl.Encode(option.ClientIP))
 		} else {
-			option.Endpoint = fmt.Sprintf("%s?edns_client_subnet=%s", option.Endpoint, option.ClientIP)
+			option.Endpoint =
+				fmt.Sprintf("%s?edns_client_subnet=%s", option.Endpoint, gurl.Encode(option.ClientIP))
 		}
 
 	})
@@ -89,10 +93,14 @@ func NewGoogleDNS(modOptions ...ModOption) CustomResolver {
 func NewDoH(modOptions ...ModOption) CustomResolver {
 
 	option := Option{
-		Endpoint: "https://8.8.8.8/resolve",
+		Endpoint: "https://dns.google/resolve",
 		Client: &http.Client{
 			Timeout:   time.Second,
 			Transport: http.DefaultTransport,
+		},
+		Hosts: map[string]string{
+			"dns.google":         "8.8.8.8",
+			"cloudflare-dns.com": "1.1.1.1",
 		},
 	}
 

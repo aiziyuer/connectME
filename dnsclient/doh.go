@@ -8,6 +8,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
 	"net"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -111,19 +112,28 @@ func (c *DoH) handlerRR(item *DohCommon) (rr dns.RR) {
 
 func (c *DoH) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
 
-	res, err := c.getClient().R().
+	request := c.getClient().R().
 		EnableTrace().
 		SetHeaders(map[string]string{
 			"accept": "application/dns-json",
 		}).
 		SetQueryParams(map[string]string{
-			"edns_client_subnet": c.option.ClientIP,
-			"name":               name,
-			"type":               dns.TypeToString[rType],
-			"cd":                 "false", // ignore DNSSEC
-			"do":                 "false", // ignore DNSSEC
-		}).
-		Get(c.option.Endpoint)
+			"name": name,
+			"type": dns.TypeToString[rType],
+			"cd":   "false", // ignore DNSSEC
+			"do":   "false", // ignore DNSSEC
+		})
+
+	endpoint := c.option.Endpoint
+	if u, err := url.Parse(endpoint); err == nil {
+		if ip, ok := c.option.Hosts[u.Host]; ok {
+			request.SetHeader("Host", u.Host)
+			u.Host = ip
+			endpoint = u.String()
+		}
+	}
+
+	res, err := request.Get(endpoint)
 	if err != nil {
 		logrus.Fatal(err)
 	}
