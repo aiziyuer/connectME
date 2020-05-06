@@ -15,8 +15,82 @@ limitations under the License.
 */
 package main
 
-import "github.com/aiziyuer/connectDNS/cmd"
+import (
+	"fmt"
+	"github.com/aiziyuer/connectDNS/cmd"
+	"github.com/gogf/gf/os/gfile"
+	log "github.com/sirupsen/logrus"
+	"io"
+	"io/ioutil"
+	"os"
+)
+
+type WriterHook struct {
+	Writer    io.Writer
+	LogLevels []log.Level
+}
+
+func (hook *WriterHook) Fire(entry *log.Entry) error {
+	line, err := entry.String()
+	if err != nil {
+		return err
+	}
+	_, err = hook.Writer.Write([]byte(line))
+	return err
+}
+
+func (hook *WriterHook) Levels() []log.Level {
+	return hook.LogLevels
+}
+
+// setupLogs adds hooks to send logs to different destinations depending on level
+func setupLogs() {
+	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
+
+	log.AddHook(&WriterHook{ // Send logs with level higher than warning to stderr
+		Writer: os.Stderr,
+		LogLevels: []log.Level{
+			log.PanicLevel,
+			log.FatalLevel,
+			log.ErrorLevel,
+			log.WarnLevel,
+		},
+	})
+	log.AddHook(&WriterHook{ // Send info and debug logs to stdout
+		Writer: os.Stdout,
+		LogLevels: []log.Level{
+			log.InfoLevel,
+			log.DebugLevel,
+		},
+	})
+
+	logPath := "/var/log/connectDNS/connectDNS.log"
+	_ = gfile.Mkdir(gfile.Dir(logPath))
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(fmt.Sprintf("log file(%s) open failed: %s", logPath, err))
+	}
+	log.AddHook(&WriterHook{ // Send info and debug logs to stdout
+		Writer: logFile,
+		LogLevels: []log.Level{
+			log.PanicLevel,
+			log.FatalLevel,
+			log.ErrorLevel,
+			log.WarnLevel,
+			log.InfoLevel,
+			log.DebugLevel,
+		},
+	})
+
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors:   true,
+		TimestampFormat: "2006-01-02 15:04:05",
+		FullTimestamp:   false,
+	})
+}
 
 func main() {
+
+	setupLogs()
 	cmd.Execute()
 }

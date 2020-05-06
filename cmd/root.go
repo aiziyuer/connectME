@@ -22,12 +22,10 @@ import (
 	"github.com/aiziyuer/connectDNS/dnsclient"
 	"github.com/aiziyuer/connectDNS/dnsserver"
 	"github.com/aiziyuer/connectDNS/regexputil"
-	"github.com/gogf/gf/os/gfile"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/http/httpproxy"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -48,24 +46,6 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-
-	logPath := "/var/log/connectDNS/connectDNS.log"
-	logDir := gfile.Dir(logPath)
-	err := gfile.Mkdir(logDir)
-	if err != nil {
-		panic(fmt.Sprintf("log dir(%s) create failed: %s", logDir, err))
-	}
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic(fmt.Sprintf("log file(%s) open failed: %s", logPath, err))
-	}
-
-	log.SetOutput(io.MultiWriter(os.Stdout, logFile))
-	log.SetFormatter(&log.TextFormatter{
-		DisableColors:   true,
-		TimestampFormat: "2006-01-02 15:04:05",
-		FullTimestamp:   false,
-	})
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
