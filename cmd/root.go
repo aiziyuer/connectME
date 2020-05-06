@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"context"
 	"crypto/tls"
 	"fmt"
 	"github.com/aiziyuer/connectDNS/dnsclient"
@@ -26,7 +25,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/http/httpproxy"
-	"net"
 	"net/http"
 	"os"
 	"path"
@@ -58,44 +56,11 @@ func init() {
 
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 
-		localHostMap := map[string]string{
-			"dns.google": "8.8.8.8",
-		}
-
 		client := &http.Client{
 			Transport: &http.Transport{
 				Proxy: http.ProxyFromEnvironment,
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: insecure,
-				},
-				DialContext: func(ctx context.Context, network string, addr string) (conn net.Conn, err error) {
-					host, port, err := net.SplitHostPort(addr)
-					if err != nil {
-						return nil, err
-					}
-
-					// local cache
-					log.Infof("host: %s", host)
-					if ip, ok := localHostMap[host]; ok {
-						var dialer net.Dialer
-						conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
-						if err == nil {
-							return
-						}
-					}
-
-					ips, err := net.DefaultResolver.LookupAddr(ctx, host)
-					if err != nil {
-						return nil, err
-					}
-					for _, ip := range ips {
-						var dialer net.Dialer
-						conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
-						if err == nil {
-							break
-						}
-					}
-					return
 				},
 			},
 		}

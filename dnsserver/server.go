@@ -2,6 +2,7 @@ package dnsserver
 
 import (
 	"github.com/aiziyuer/connectDNS/dnsclient"
+	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -71,7 +72,7 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 		}
 	}
 
-	log.Infof("======= query record result ============\n%s", r)
+	log.Debug(gconv.String(r))
 	err := writer.WriteMsg(r)
 	if err != nil {
 		log.Warnf("Error: Writing Response:%v\n", err)

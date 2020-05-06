@@ -56,11 +56,11 @@ func setupLogs() {
 			log.WarnLevel,
 		},
 	})
-	log.AddHook(&WriterHook{ // Send info and debug logs to stdout
+
+	log.AddHook(&WriterHook{ // Send logs with level higher than warning to stderr
 		Writer: os.Stdout,
 		LogLevels: []log.Level{
 			log.InfoLevel,
-			log.DebugLevel,
 		},
 	})
 
@@ -82,6 +82,7 @@ func setupLogs() {
 		},
 	})
 
+	log.SetReportCaller(true)
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors:   true,
 		TimestampFormat: "2006-01-02 15:04:05",
