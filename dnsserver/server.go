@@ -6,7 +6,6 @@ import (
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"time"
 )
 
 type Option struct {
@@ -79,30 +78,4 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 	}
 	_ = writer.Close()
 
-}
-
-func DefaultResolver(protocol string, q *dns.Question, resp *dns.Msg) {
-
-	defaultResolver := &dns.Client{
-		Net:          protocol,
-		ReadTimeout:  1000 * time.Second,
-		WriteTimeout: 1000 * time.Second,
-	}
-
-	ret, _, err := defaultResolver.Exchange(
-		new(dns.Msg).SetQuestion(q.Name, q.Qtype),
-		"114.114.114.114:53",
-	)
-	// handle failed
-	if err != nil {
-		resp.SetRcode(resp, dns.RcodeServerFailure)
-		log.Printf("Error: DNS:" + err.Error())
-		return
-	}
-	// domain not found
-	if ret != nil && (ret.Rcode != dns.RcodeSuccess || len(ret.Answer) == 0) {
-		resp.SetRcode(resp, dns.RcodeNameError)
-		return
-	}
-	resp.Answer = append(resp.Answer, ret.Answer[0])
 }
