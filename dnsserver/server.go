@@ -71,7 +71,7 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 		}
 	}
 
-	if len(r.Answer) == 0 {
+	if len(r.Answer) == 0 && len(r.Ns) == 0 {
 		log.Warn(gconv.String(r))
 	} else {
 		log.Debug(gconv.String(r))
