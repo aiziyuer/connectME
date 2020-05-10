@@ -22,8 +22,8 @@ import (
 	"github.com/aiziyuer/connectDNS/dnsserver"
 	"github.com/aiziyuer/connectDNS/regexputil"
 	"github.com/miekg/dns"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 	"golang.org/x/net/http/httpproxy"
 	"net/http"
 	"os"
@@ -69,7 +69,7 @@ func init() {
 			option.Client = client
 		}).LookupRawTXT("o-o.myaddr.l.google.com")
 		if m.Txt == nil || len(m.Txt) == 0 {
-			log.Fatalf("public_ip can't get!")
+			zap.S().Fatalf("public_ip can't get!")
 		}
 
 		ednsSubnet := ""
@@ -84,16 +84,16 @@ func init() {
 			}
 		}
 		if len(ednsSubnet) == 0 {
-			log.Fatalf("public_ip can't get!")
+			zap.S().Fatalf("public_ip can't get!")
 		}
 
-		log.Infof("ednsSubnet: %s.", ednsSubnet)
+		zap.S().Infof("ednsSubnet: %s.", ednsSubnet)
 
 		if httpproxy.FromEnvironment().HTTPProxy != "" {
-			log.Infof("http_proxy: %s.", httpproxy.FromEnvironment().HTTPProxy)
+			zap.S().Infof("http_proxy: %s.", httpproxy.FromEnvironment().HTTPProxy)
 		}
 		if httpproxy.FromEnvironment().HTTPSProxy != "" {
-			log.Infof("https_proxy: %s.", httpproxy.FromEnvironment().HTTPSProxy)
+			zap.S().Infof("https_proxy: %s.", httpproxy.FromEnvironment().HTTPSProxy)
 		}
 
 		// dig @127.0.0.1 -p53 www.google.com A +short
@@ -106,8 +106,8 @@ func init() {
 				option.Client = client
 			})
 			h.HandleFunc(".", s.Handler)
-			log.Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
-			log.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
+			zap.S().Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
+			zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
 		}()
 
 		// nslookup -vc www.google.com 127.0.0.1
@@ -120,8 +120,8 @@ func init() {
 				option.Client = client
 			})
 			h.HandleFunc(".", s.Handler)
-			log.Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
-			log.Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
+			zap.S().Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
+			zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
 		}()
 
 		select {}

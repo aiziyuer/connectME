@@ -19,7 +19,7 @@ go get -u -v github.com/aiziyuer/connectDNS
 ```
 
 # test with udp
-dig @127.0.0.1 -p1053 www.google.com +short
+dig @127.0.0.1 -p10053 www.google.com +short
 dig www.google.com +short
 
 # test via tcp

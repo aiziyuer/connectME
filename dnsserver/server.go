@@ -5,7 +5,7 @@ import (
 	"github.com/gogf/gf/text/gstr"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"net/http"
 )
 
@@ -73,13 +73,13 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 	}
 
 	if len(r.Answer) == 0 && len(r.Ns) == 0 {
-		log.Warn(gconv.String(r))
+		zap.S().Warn(gconv.String(r))
 	} else {
-		log.Debug(gconv.String(r))
+		zap.S().Debug(gconv.String(r))
 	}
 	err := writer.WriteMsg(r)
 	if err != nil {
-		log.Warnf("Error: Writing Response:%v\n", err)
+		zap.S().Warnf("Error: Writing Response:%v\n", err)
 	}
 	_ = writer.Close()
 

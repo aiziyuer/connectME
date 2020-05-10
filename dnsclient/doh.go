@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"net"
 	"net/url"
 	"strconv"
@@ -135,12 +136,14 @@ func (c *DoH) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
 
 	res, err := request.Get(endpoint)
 	if err != nil {
-		log.Fatal(err)
+		zap.S().Error(err)
+		return
 	}
 
 	var resp DohResponse
 	if err := json.NewDecoder(bytes.NewReader(res.Body())).Decode(&resp); err != nil {
-		log.Fatal(err)
+		zap.S().Error(err)
+		return
 	}
 
 	for _, item := range resp.Answer {

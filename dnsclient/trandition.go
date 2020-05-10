@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"net"
 )
 
@@ -33,7 +33,7 @@ func (c *Tradition) LookupRawTXT(name string) *dns.TXT {
 
 	result, err := r.LookupTXT(ctx, name)
 	if err != nil {
-		log.Error(err)
+		zap.S().Error(err)
 	}
 
 	return &dns.TXT{
@@ -70,13 +70,13 @@ func (c *Tradition) LookupRaw(name string, rType uint16) *dns.Msg {
 		ips, err = r.LookupTXT(ctx, name)
 		if err != nil {
 			ret.SetRcode(ret, dns.RcodeBadName)
-			log.Error(err)
+			zap.S().Error(err)
 		}
 	case dns.TypeA:
 		ips, err = r.LookupAddr(ctx, name)
 		if err != nil {
 			ret.SetRcode(ret, dns.RcodeBadName)
-			log.Error(err)
+			zap.S().Error(err)
 		}
 	default:
 		ret.SetRcode(ret, dns.RcodeNotImplemented)
