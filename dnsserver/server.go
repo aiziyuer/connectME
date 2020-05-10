@@ -40,17 +40,19 @@ func NewForwardServer(modOptions ...ModOption) *ForwardServer {
 
 func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 
-	// DoH
-	doh := dnsclient.NewGoogleDNS(func(option *dnsclient.Option) {
-		option.ClientIP = f.option.ClientIP
-		option.Client = f.option.Client
-	})
+	defer func() { _ = writer.Close() }()
 
 	r := new(dns.Msg)
 	r.SetReply(msg)
 	r.RecursionAvailable = msg.RecursionDesired
 	r.Authoritative = true
 	r.SetRcode(msg, dns.RcodeSuccess)
+
+	// DoH
+	doh := dnsclient.NewGoogleDNS(func(option *dnsclient.Option) {
+		option.ClientIP = f.option.ClientIP
+		option.Client = f.option.Client
+	})
 
 	for _, q := range msg.Question {
 		switch q.Qtype {
@@ -77,10 +79,8 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 	} else {
 		zap.S().Debug(gconv.String(r))
 	}
-	err := writer.WriteMsg(r)
-	if err != nil {
+
+	if err := writer.WriteMsg(r); err != nil {
 		zap.S().Warnf("Error: Writing Response:%v\n", err)
 	}
-	_ = writer.Close()
-
 }

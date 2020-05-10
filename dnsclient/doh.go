@@ -3,15 +3,20 @@ package dnsclient
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/go-resty/resty/v2"
+	"github.com/gogf/gf/encoding/gjson"
+	"github.com/gogf/gf/encoding/gparser"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
+	"github.com/patrickmn/go-cache"
 	log "github.com/sirupsen/logrus"
 	"go.uber.org/zap"
 	"net"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type DoH struct {
@@ -111,42 +116,74 @@ func (c *DoH) handlerRR(item *DohCommon) (rr dns.RR) {
 	return
 }
 
+var (
+	globalCache = cache.New(5*time.Minute, 1*time.Second)
+)
+
 func (c *DoH) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
 
-	request := c.getClient().R().
-		EnableTrace().
-		SetHeaders(map[string]string{
-			"accept": "application/dns-json",
-		}).
-		SetQueryParams(map[string]string{
-			"name": name,
-			"type": dns.TypeToString[rType],
-			"cd":   "false", // ignore DNSSEC
-			"do":   "false", // ignore DNSSEC
-		})
+	cachedKey := fmt.Sprintf("%s->%s", name, dns.TypeToString[rType])
+	var dohResponse DohResponse
 
-	endpoint := c.option.Endpoint
-	if u, err := url.Parse(endpoint); err == nil {
-		if ip, ok := c.option.Hosts[u.Host]; ok {
-			request.SetHeader("Host", u.Host)
-			u.Host = ip
-			endpoint = u.String()
+	// Try cache
+	if cachedValue, found := globalCache.Get(cachedKey); found {
+		if err := gjson.DecodeTo(cachedValue, &dohResponse); err != nil {
+			zap.S().Error(err)
+		} else {
+			zap.S().Debugf("cachedKey: %s, cachedValue: %s.\n", cachedKey, cachedValue)
 		}
+	} else {
+		request := c.getClient().R().
+			EnableTrace().
+			SetHeaders(map[string]string{
+				"accept": "application/dns-json",
+			}).
+			SetQueryParams(map[string]string{
+				"name": name,
+				"type": dns.TypeToString[rType],
+				"cd":   "false", // ignore DNSSEC
+				"do":   "false", // ignore DNSSEC
+			})
+
+		endpoint := c.option.Endpoint
+		if u, err := url.Parse(endpoint); err == nil {
+			if ip, ok := c.option.Hosts[u.Host]; ok {
+				request.SetHeader("Host", u.Host)
+				u.Host = ip
+				endpoint = u.String()
+			}
+		}
+
+		res, err := request.Get(endpoint)
+		if err != nil {
+			zap.S().Error(err)
+			return
+		}
+
+		if err := json.NewDecoder(bytes.NewReader(res.Body())).Decode(&dohResponse); err != nil {
+			zap.S().Error(err)
+			return
+		}
+
+		// find the shortest ttl
+		ttl := 60 * 60 * 24 // one day
+		for _, item := range dohResponse.Answer {
+			if item.TTL < ttl {
+				ttl = item.TTL
+			}
+		}
+		for _, item := range dohResponse.Authority {
+			if item.TTL < ttl {
+				ttl = item.TTL
+			}
+		}
+
+		cacheValue := gparser.MustToJsonString(dohResponse)
+		cacheTTL := time.Duration(ttl) * time.Second
+		globalCache.Set(cachedKey, cacheValue, cacheTTL)
 	}
 
-	res, err := request.Get(endpoint)
-	if err != nil {
-		zap.S().Error(err)
-		return
-	}
-
-	var resp DohResponse
-	if err := json.NewDecoder(bytes.NewReader(res.Body())).Decode(&resp); err != nil {
-		zap.S().Error(err)
-		return
-	}
-
-	for _, item := range resp.Answer {
+	for _, item := range dohResponse.Answer {
 		if tmp := c.handlerRR(item); tmp != nil {
 			tmp.Header().Name = dns.Fqdn(item.Name)
 			tmp.Header().Rrtype = gconv.Uint16(item.Type)
@@ -156,7 +193,7 @@ func (c *DoH) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
 		}
 	}
 
-	for _, item := range resp.Authority {
+	for _, item := range dohResponse.Authority {
 		if tmp := c.handlerRR(item); tmp != nil {
 			tmp.Header().Name = dns.Fqdn(item.Name)
 			tmp.Header().Rrtype = gconv.Uint16(item.Type)
