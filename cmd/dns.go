@@ -18,9 +18,9 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/aiziyuer/connectDNS/dnsclient"
-	"github.com/aiziyuer/connectDNS/dnsserver"
-	"github.com/aiziyuer/connectDNS/regexputil"
+	"github.com/aiziyuer/connectME/dnsclient"
+	"github.com/aiziyuer/connectME/dnsserver"
+	"github.com/aiziyuer/connectME/regexputil"
 	"github.com/miekg/dns"
 	"go.uber.org/zap"
 	"golang.org/x/net/http/httpproxy"
@@ -58,7 +58,7 @@ var dnsCmd = &cobra.Command{
 		for _, txt := range m.Txt {
 			if strings.Contains(txt, "edns") {
 				r := regexp.MustCompile(`^edns0-client-subnet (?P<subnet>\S+)$`)
-				m := regexputil.NamedStringSubmatch(r, txt)
+				m := regexputil.NamedStringSubMatch(r, txt)
 				if len(m) > 0 {
 					ednsSubnet = m["subnet"]
 					break
@@ -69,7 +69,7 @@ var dnsCmd = &cobra.Command{
 			zap.S().Fatalf("public_ip can't get!")
 		}
 
-		zap.S().Infof("ednsSubnet: %s.", ednsSubnet)
+		zap.S().Infof("ednsSubnet: %s", ednsSubnet)
 
 		if httpproxy.FromEnvironment().HTTPProxy != "" {
 			zap.S().Infof("http_proxy: %s.", httpproxy.FromEnvironment().HTTPProxy)

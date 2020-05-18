@@ -16,7 +16,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/aiziyuer/connectDNS/cmd"
+	"github.com/aiziyuer/connectME/cmd"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -41,11 +41,11 @@ func setupLogs() {
 			},
 			EncodeCaller: zapcore.ShortCallerEncoder,
 		}), zapcore.AddSync(&lumberjack.Logger{
-			Filename:   "/var/log/connectDNS/info.log", // 日志路径
-			MaxSize:    128,                            // 日志大小, 单位是M
-			MaxAge:     7,                              // 最多保存多少天
-			MaxBackups: 5,                              // 最多备份多少个
-			Compress:   true,                           // 压缩
+			Filename:   "/var/log/connectME/info.log", // 日志路径
+			MaxSize:    128,                           // 日志大小, 单位是M
+			MaxAge:     7,                             // 最多保存多少天
+			MaxBackups: 5,                             // 最多备份多少个
+			Compress:   true,                          // 压缩
 		}), zap.LevelEnablerFunc(func(level zapcore.Level) bool {
 			return level >= zapcore.DebugLevel
 		})),

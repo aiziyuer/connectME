@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/aiziyuer/connectDNS/dnsclient"
+	"github.com/aiziyuer/connectME/dnsclient"
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
 	"log"

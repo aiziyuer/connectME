@@ -1,7 +1,7 @@
 package dnsserver
 
 import (
-	"github.com/aiziyuer/connectDNS/dnsclient"
+	"github.com/aiziyuer/connectME/dnsclient"
 	"github.com/gogf/gf/text/gstr"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"

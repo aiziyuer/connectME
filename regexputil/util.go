@@ -2,7 +2,7 @@ package regexputil
 
 import "regexp"
 
-func NamedStringSubmatch(r *regexp.Regexp, text string) map[string]string {
+func NamedStringSubMatch(r *regexp.Regexp, text string) map[string]string {
 
 	result := map[string]string{}
 
