@@ -127,16 +127,17 @@ func (c *DoH) RefreshCache() {
 			now := time.Now()
 			for key, item := range globalCache.Items() {
 				// Refresh at 15s before expiration
-				if time.Duration(item.Expiration-now.UnixNano()) < 15*1000*time.Millisecond {
+				if time.Duration(item.Expiration-now.UnixNano()) < 20*1000*time.Millisecond {
 					m := util.NamedStringSubMatch(regexp.MustCompile(`(?P<name>.+)->(?P<type>.+)`), key)
 					if len(m) == 2 {
+						zap.S().Infof("&&&&&&& refresh caching(%s->%s)... &&&&&&&&&\n", m["name"], m["type"])
 						var dohResponse DohResponse
 						c.lookUP(m["name"], m["type"], &dohResponse)
 					}
 				}
 
 			}
-		})
+		}).Start()
 
 	})
 
