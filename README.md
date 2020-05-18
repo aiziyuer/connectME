@@ -14,7 +14,7 @@ go get -u -v github.com/aiziyuer/connectME
 ```
 
 
-## 🧼 DNS Server
+## 🧼 Serve DNS
 
 ```
 # start it
@@ -34,9 +34,9 @@ nslookup -vc www.google.com 8.8.8.8
 ## ☕ AutoStart
 
 ```bash
-cat <<'EOF' >/etc/systemd/system/connectME@.service
+cat <<'EOF' >/etc/systemd/system/connectDNS.service
 [Unit]
-Description=connectDNS
+Description=connectME dns
 Documentation=https://github.com/aiziyuer/connectME
 After=network.target
 
@@ -44,7 +44,7 @@ After=network.target
 Type=simple
 Environment="HTTP_PROXY=127.0.0.1:3128"
 Environment="HTTPS_PROXY=127.0.0.1:3128"
-ExecStart=/usr/bin/connectME %i --port 53
+ExecStart=/usr/bin/connectME dns --port 53
 ProtectSystem=strict
 RestartSec=1
 Restart=always
@@ -53,8 +53,8 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
-systemctl enable connectME@dns.service
-systemctl start connectME@dns.service
+systemctl enable connectDNS.service
+systemctl start connectDNS.service
 ```
 
 ## 🙏 FAQ
@@ -62,3 +62,4 @@ systemctl start connectME@dns.service
 - [Using Cobra With Golang](https://o-my-chenjian.com/2017/09/20/Using-Cobra-With-Golang/)
 - [goproxy](https://goproxy.io/zh/)
 - [emojipedia.org](https://emojipedia.org/)
+- [The @ symbol and systemctl and vsftpd](https://superuser.com/questions/393423/the-symbol-and-systemctl-and-vsftpd)
