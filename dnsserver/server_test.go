@@ -2,7 +2,7 @@ package dnsserver
 
 import (
 	"crypto/tls"
-	"github.com/aiziyuer/connectDNS/dnsclient"
+	"github.com/aiziyuer/connectME/dnsclient"
 	"github.com/miekg/dns"
 	"go.uber.org/zap"
 	"net/http"

@@ -29,7 +29,6 @@ dig www.google.com +short
 
 # test via tcp
 nslookup -vc www.google.com 8.8.8.8
-
 ```
 
 ## ☕ AutoStart
@@ -45,7 +44,7 @@ After=network.target
 Type=simple
 Environment="HTTP_PROXY=127.0.0.1:3128"
 Environment="HTTPS_PROXY=127.0.0.1:3128"
-ExecStart=/usr/bin/connectME @ --port 53
+ExecStart=/usr/bin/connectME %i --port 53
 ProtectSystem=strict
 RestartSec=1
 Restart=always
@@ -54,11 +53,12 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
-systemctl enable connectME@dns
-systemctl start connectME@dns
+systemctl enable connectME@dns.service
+systemctl start connectME@dns.service
 ```
 
 ## 🙏 FAQ
 
 - [Using Cobra With Golang](https://o-my-chenjian.com/2017/09/20/Using-Cobra-With-Golang/)
 - [goproxy](https://goproxy.io/zh/)
+- [emojipedia.org](https://emojipedia.org/)

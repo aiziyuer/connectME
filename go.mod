@@ -3,7 +3,6 @@ module github.com/aiziyuer/connectME
 go 1.14
 
 require (
-	github.com/aiziyuer/connectDNS v0.0.0-20200518151214-4de299aaa9eb
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-resty/resty/v2 v2.2.0
 	github.com/gogf/gf v1.12.2
