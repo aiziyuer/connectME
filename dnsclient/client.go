@@ -108,5 +108,8 @@ func NewDoH(modOptions ...ModOption) CustomResolver {
 		fn(&option)
 	}
 
-	return &DoH{option: &option}
+	client := &DoH{option: &option}
+	client.RefreshCache()
+
+	return client
 }

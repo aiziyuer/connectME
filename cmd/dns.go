@@ -20,8 +20,7 @@ import (
 	"fmt"
 	"github.com/aiziyuer/connectME/dnsclient"
 	"github.com/aiziyuer/connectME/dnsserver"
-	"github.com/aiziyuer/connectME/logutil"
-	"github.com/aiziyuer/connectME/regexputil"
+	"github.com/aiziyuer/connectME/util"
 	"github.com/miekg/dns"
 	"go.uber.org/zap"
 	"golang.org/x/net/http/httpproxy"
@@ -39,7 +38,7 @@ var dnsCmd = &cobra.Command{
 	Long:  `A DNS Server support DOH.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		logutil.SetupLogs("/var/log/connectME/dns.log")
+		util.SetupLogs("/var/log/connectME/dns.log")
 
 		client := &http.Client{
 			Transport: &http.Transport{
@@ -61,7 +60,7 @@ var dnsCmd = &cobra.Command{
 		for _, txt := range m.Txt {
 			if strings.Contains(txt, "edns") {
 				r := regexp.MustCompile(`^edns0-client-subnet (?P<subnet>\S+)$`)
-				m := regexputil.NamedStringSubMatch(r, txt)
+				m := util.NamedStringSubMatch(r, txt)
 				if len(m) > 0 {
 					ednsSubnet = m["subnet"]
 					break
@@ -116,7 +115,7 @@ var dnsCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(dnsCmd)
 
-	dnsCmd.PersistentFlags().IntVar(&listenPort, "port", 1053,
+	dnsCmd.PersistentFlags().IntVar(&listenPort, "port", 10053,
 		"listen server port",
 	)
 	dnsCmd.PersistentFlags().StringVar(&listenAddress, "address", "0.0.0.0",

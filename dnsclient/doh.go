@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/go-resty/resty/v2"
+	"github.com/aiziyuer/connectME/util"
 	"github.com/gogf/gf/encoding/gjson"
 	"github.com/gogf/gf/encoding/gparser"
+	"github.com/gogf/gf/os/gtimer"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
 	"github.com/patrickmn/go-cache"
@@ -14,8 +15,10 @@ import (
 	"go.uber.org/zap"
 	"net"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -30,13 +33,6 @@ func (c *DoH) LookupRaw(name string, rType uint16) *dns.Msg {
 	c.LookupRawAppend(ret, name, rType)
 
 	return ret
-}
-
-func (c *DoH) getClient() *resty.Client {
-	return resty.
-		NewWithClient(c.option.Client).
-		SetRetryCount(3).
-		SetDebug(false)
 }
 
 func (c *DoH) handlerRR(item *DohCommon) (rr dns.RR) {
@@ -118,7 +114,33 @@ func (c *DoH) handlerRR(item *DohCommon) (rr dns.RR) {
 
 var (
 	globalCache = cache.New(5*time.Minute, 1*time.Second)
+	once        sync.Once
 )
+
+func (c *DoH) RefreshCache() {
+
+	once.Do(func() {
+
+		// add go routine to refresh cache
+		interval := 10 * 1000 * time.Millisecond
+		gtimer.Add(interval, func() {
+			now := time.Now()
+			for key, item := range globalCache.Items() {
+				// Refresh at 15s before expiration
+				if time.Duration(item.Expiration-now.UnixNano()) < 15*1000*time.Millisecond {
+					m := util.NamedStringSubMatch(regexp.MustCompile(`(?P<name>.+)->(?P<type>.+)`), key)
+					if len(m) == 2 {
+						var dohResponse DohResponse
+						c.lookUP(m["name"], m["type"], &dohResponse)
+					}
+				}
+
+			}
+		})
+
+	})
+
+}
 
 func (c *DoH) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
 
@@ -133,54 +155,9 @@ func (c *DoH) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
 			zap.S().Debugf("cachedKey: %s, cachedValue: %s.\n", cachedKey, cachedValue)
 		}
 	} else {
-		request := c.getClient().R().
-			EnableTrace().
-			SetHeaders(map[string]string{
-				"accept": "application/dns-json",
-			}).
-			SetQueryParams(map[string]string{
-				"name": name,
-				"type": dns.TypeToString[rType],
-				"cd":   "false", // ignore DNSSEC
-				"do":   "false", // ignore DNSSEC
-			})
-
-		endpoint := c.option.Endpoint
-		if u, err := url.Parse(endpoint); err == nil {
-			if ip, ok := c.option.Hosts[u.Host]; ok {
-				request.SetHeader("Host", u.Host)
-				u.Host = ip
-				endpoint = u.String()
-			}
-		}
-
-		res, err := request.Get(endpoint)
-		if err != nil {
-			zap.S().Error(err)
+		if c.lookUP(name, dns.TypeToString[rType], &dohResponse) {
 			return
 		}
-
-		if err := json.NewDecoder(bytes.NewReader(res.Body())).Decode(&dohResponse); err != nil {
-			zap.S().Error(err)
-			return
-		}
-
-		// find the shortest ttl
-		ttl := 60 * 60 * 24 // one day
-		for _, item := range dohResponse.Answer {
-			if item.TTL < ttl {
-				ttl = item.TTL
-			}
-		}
-		for _, item := range dohResponse.Authority {
-			if item.TTL < ttl {
-				ttl = item.TTL
-			}
-		}
-
-		cacheValue := gparser.MustToJsonString(dohResponse)
-		cacheTTL := time.Duration(ttl) * time.Second
-		globalCache.Set(cachedKey, cacheValue, cacheTTL)
 	}
 
 	for _, item := range dohResponse.Answer {
@@ -205,6 +182,60 @@ func (c *DoH) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
 
 }
 
+func (c *DoH) lookUP(name string, rType string, dohResponse *DohResponse) bool {
+
+	cachedKey := fmt.Sprintf("%s->%s", name, rType)
+
+	request := util.NewRequest(c.option.Client).
+		SetHeaders(map[string]string{
+			"accept": "application/dns-json",
+		}).
+		SetQueryParams(map[string]string{
+			"name": name,
+			"type": rType,
+			"cd":   "false", // ignore DNSSEC
+			"do":   "false", // ignore DNSSEC
+		})
+
+	endpoint := c.option.Endpoint
+	if u, err := url.Parse(endpoint); err == nil {
+		if ip, ok := c.option.Hosts[u.Host]; ok {
+			request.SetHeader("Host", u.Host)
+			u.Host = ip
+			endpoint = u.String()
+		}
+	}
+
+	res, err := request.Get(endpoint)
+	if err != nil {
+		zap.S().Error(err)
+		return true
+	}
+
+	if err := json.NewDecoder(bytes.NewReader(res.Body())).Decode(dohResponse); err != nil {
+		zap.S().Error(err)
+		return true
+	}
+	// find the shortest ttl
+	ttl := 60 * 60 * 24 // one day
+	for _, item := range dohResponse.Answer {
+		if item.TTL < ttl {
+			ttl = item.TTL
+		}
+	}
+	for _, item := range dohResponse.Authority {
+		if item.TTL < ttl {
+			ttl = item.TTL
+		}
+	}
+
+	cacheValue := gparser.MustToJsonString(dohResponse)
+	cacheTTL := time.Duration(ttl) * time.Second
+	globalCache.Set(cachedKey, cacheValue, cacheTTL)
+
+	return false
+}
+
 func (c *DoH) LookupRawTXT(name string) *dns.TXT {
 	return nil
 }
@@ -213,10 +244,7 @@ func (c *DoH) LookupRawA(name string) (result []*dns.A) {
 
 	result = make([]*dns.A, 0)
 
-	res, err := resty.NewWithClient(c.option.Client).
-		SetDebug(true).
-		R().
-		EnableTrace().
+	res, err := util.NewRequest(c.option.Client).
 		SetHeaders(map[string]string{
 			"accept": "application/dns-json",
 		}).

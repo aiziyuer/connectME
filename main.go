@@ -17,10 +17,10 @@ package main
 
 import (
 	"github.com/aiziyuer/connectME/cmd"
-	"github.com/aiziyuer/connectME/logutil"
+	"github.com/aiziyuer/connectME/util"
 )
 
 func main() {
-	logutil.SetupLogs("/var/log/connectME/info.log")
+	util.SetupLogs("/var/log/connectME/info.log")
 	cmd.Execute()
 }
