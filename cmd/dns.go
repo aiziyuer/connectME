@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/aiziyuer/connectME/dnsclient"
 	"github.com/aiziyuer/connectME/dnsserver"
+	"github.com/aiziyuer/connectME/logutil"
 	"github.com/aiziyuer/connectME/regexputil"
 	"github.com/miekg/dns"
 	"go.uber.org/zap"
@@ -37,6 +38,8 @@ var dnsCmd = &cobra.Command{
 	Short: "work as dns server",
 	Long:  `A DNS Server support DOH.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+
+		logutil.SetupLogs("/var/log/connectME/dns.log")
 
 		client := &http.Client{
 			Transport: &http.Transport{
