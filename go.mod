@@ -5,6 +5,8 @@ go 1.14
 require (
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
 	github.com/cybozu-go/transocks v1.1.1
+	github.com/elazarl/goproxy v0.0.0-20200426045556-49ad98f6dac1 // indirect
+	github.com/elazarl/goproxy/ext v0.0.0-20200426045556-49ad98f6dac1 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-resty/resty/v2 v2.2.0
 	github.com/gogf/gf v1.12.2
