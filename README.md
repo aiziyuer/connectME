@@ -23,12 +23,8 @@ ednsSubnet: 122.235.189.0/24
 tcp_server: 0.0.0.0:1053
 udp_server: 0.0.0.0:1053
 
-# test with udp
+# test
 dig @127.0.0.1 -p10053 www.google.com +short
-dig www.google.com +short
-
-# test via tcp
-nslookup -vc www.google.com 8.8.8.8
 ```
 
 ## ☕ AutoStart
