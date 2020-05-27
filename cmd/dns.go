@@ -74,10 +74,10 @@ var dnsCmd = &cobra.Command{
 		zap.S().Infof("ednsSubnet: %s", ednsSubnet)
 
 		if httpproxy.FromEnvironment().HTTPProxy != "" {
-			zap.S().Infof("http_proxy: %s.", httpproxy.FromEnvironment().HTTPProxy)
+			zap.S().Infof("http_proxy: %s", httpproxy.FromEnvironment().HTTPProxy)
 		}
 		if httpproxy.FromEnvironment().HTTPSProxy != "" {
-			zap.S().Infof("https_proxy: %s.", httpproxy.FromEnvironment().HTTPSProxy)
+			zap.S().Infof("https_proxy: %s", httpproxy.FromEnvironment().HTTPSProxy)
 		}
 
 		// dig @127.0.0.1 -p53 www.google.com A +short
