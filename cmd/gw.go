@@ -42,7 +42,17 @@ var gwCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		util.SetupLogs("/var/log/connectME/gw.log")
+
+		if httpproxy.FromEnvironment().HTTPProxy != "" {
+			zap.S().Infof("http_proxy: %s.", httpproxy.FromEnvironment().HTTPProxy)
+		}
+		if httpproxy.FromEnvironment().HTTPSProxy != "" {
+			zap.S().Infof("https_proxy: %s.", httpproxy.FromEnvironment().HTTPSProxy)
+		}
+
 		l, _ := net.Listen("tcp", fmt.Sprintf("%s:%d", listenGwAddress, listenGwPort))
+
+		zap.S().Infof("gw_server: %s:%d", listenGwAddress, listenGwPort)
 
 		for {
 			conn, _ := l.Accept()
