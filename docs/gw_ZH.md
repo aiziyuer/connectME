@@ -34,6 +34,8 @@ iptables -t nat -A PROXY -d 240.0.0.0/4 -j RETURN
 iptables -t nat -A PROXY -p tcp -j LOG --log-prefix "PROXY " --log-level 6
 iptables -t nat -A PROXY -p tcp -j REDIRECT --to-ports 11081
 
+iptables -t nat -A OUTPUT -p tcp -j PROXY
+
 # 测试服务
 curl -v -H "Host: dns.google.com" https://8.8.8.8/resolve?name=www.google.com&type=A
 

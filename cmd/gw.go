@@ -27,6 +27,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -62,7 +63,10 @@ var gwCmd = &cobra.Command{
 				origAddr, _ := transocks.GetOriginalDST(src.(*net.TCPConn))
 
 				var dialer *httpDialer.HttpTunnel
-				proxyStr := util.GetEnvAny(httpproxy.FromEnvironment().HTTPSProxy, httpproxy.FromEnvironment().HTTPProxy)
+				proxyStr := util.GetEnvAny(
+					regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPSProxy, "https://"),
+					regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPProxy, "http://"),
+				)
 
 				if strings.TrimSpace(proxyStr) != "" {
 
