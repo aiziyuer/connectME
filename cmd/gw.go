@@ -41,6 +41,7 @@ var gwCmd = &cobra.Command{
 	Long:  `A Gateway to backend proxy.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
+		util.SetupLogs("/var/log/connectME/gw.log")
 		l, _ := net.Listen("tcp", fmt.Sprintf("%s:%d", listenGwAddress, listenGwPort))
 
 		for {
