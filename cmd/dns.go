@@ -90,8 +90,8 @@ var dnsCmd = &cobra.Command{
 				option.Client = client
 			})
 			h.HandleFunc(".", s.Handler)
-			zap.S().Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
-			zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
+			zap.S().Infof("%s_server: %s:%d", protocol, listenDnsAddress, listenDnsPort)
+			zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenDnsAddress, listenDnsPort), protocol, h))
 		}()
 
 		// nslookup -vc www.google.com 127.0.0.1
@@ -104,8 +104,8 @@ var dnsCmd = &cobra.Command{
 				option.Client = client
 			})
 			h.HandleFunc(".", s.Handler)
-			zap.S().Infof("%s_server: %s:%d", protocol, listenAddress, listenPort)
-			zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenAddress, listenPort), protocol, h))
+			zap.S().Infof("%s_server: %s:%d", protocol, listenDnsAddress, listenDnsPort)
+			zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenDnsAddress, listenDnsPort), protocol, h))
 		}()
 
 		select {}
@@ -115,10 +115,10 @@ var dnsCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(dnsCmd)
 
-	dnsCmd.PersistentFlags().IntVar(&listenPort, "port", 10053,
+	dnsCmd.PersistentFlags().IntVar(&listenDnsPort, "port", 10053,
 		"listen server port",
 	)
-	dnsCmd.PersistentFlags().StringVar(&listenAddress, "address", "0.0.0.0",
+	dnsCmd.PersistentFlags().StringVar(&listenDnsAddress, "address", "0.0.0.0",
 		"listen server address",
 	)
 	dnsCmd.PersistentFlags().BoolVar(&insecure, "insecure", false,

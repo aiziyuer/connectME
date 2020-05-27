@@ -25,8 +25,8 @@ import (
 	"path"
 )
 
-var cfgFile, listenAddress string
-var listenPort int
+var cfgFile, listenDnsAddress string
+var listenDnsPort int
 var insecure bool
 
 var rootCmd = &cobra.Command{
