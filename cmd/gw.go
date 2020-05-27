@@ -64,8 +64,8 @@ var gwCmd = &cobra.Command{
 
 				var dialer *httpDialer.HttpTunnel
 				proxyStr := util.GetAnyString(
-					regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPSProxy, "https://"),
-					regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPProxy, "http://"),
+					"http://"+regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPSProxy, ""),
+					"http://"+regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPProxy, ""),
 				)
 
 				if strings.TrimSpace(proxyStr) != "" {
