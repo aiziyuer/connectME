@@ -7,7 +7,7 @@ gw模式
 
 ```
 # 启动容器环境
-docker run --privileged --rm -ti golang sh
+docker run --privileged --rm -ti golang bash
 
 # 安装iptables
 apt-get update && apt-get -y install iptables
