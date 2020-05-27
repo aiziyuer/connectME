@@ -18,7 +18,7 @@ func SetupLogs(logFileName string) {
 			CallerKey:   "file",
 			EncodeLevel: zapcore.CapitalLevelEncoder,
 			EncodeTime: func(time time.Time, encoder zapcore.PrimitiveArrayEncoder) {
-				encoder.AppendString(time.Format("2020-05-10 00:00:00"))
+				encoder.AppendString(time.Format("2006-01-02 15:04:05"))
 			},
 			EncodeDuration: func(duration time.Duration, encoder zapcore.PrimitiveArrayEncoder) {
 				encoder.AppendInt64(int64(duration) / 1000000)
