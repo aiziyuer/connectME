@@ -31,6 +31,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	ednsSubnet string //
+)
+
 // dnsCmd represents the dns command
 var dnsCmd = &cobra.Command{
 	Use:   "dns",
@@ -49,26 +53,27 @@ var dnsCmd = &cobra.Command{
 			},
 		}
 
-		m := dnsclient.NewTraditionDNS(func(option *dnsclient.Option) {
-			option.Client = client
-		}).LookupRawTXT("o-o.myaddr.l.google.com")
-		if m.Txt == nil || len(m.Txt) == 0 {
-			zap.S().Fatalf("public_ip can't get!")
-		}
+		if len(ednsSubnet) == 0 {
+			m := dnsclient.NewTraditionDNS(func(option *dnsclient.Option) {
+				option.Client = client
+			}).LookupRawTXT("o-o.myaddr.l.google.com")
+			if m.Txt == nil || len(m.Txt) == 0 {
+				zap.S().Fatalf("public_ip can't get!")
+			}
 
-		ednsSubnet := ""
-		for _, txt := range m.Txt {
-			if strings.Contains(txt, "edns") {
-				r := regexp.MustCompile(`^edns0-client-subnet (?P<subnet>\S+)$`)
-				m := util.NamedStringSubMatch(r, txt)
-				if len(m) > 0 {
-					ednsSubnet = m["subnet"]
-					break
+			for _, txt := range m.Txt {
+				if strings.Contains(txt, "edns") {
+					r := regexp.MustCompile(`^edns0-client-subnet (?P<subnet>\S+)$`)
+					m := util.NamedStringSubMatch(r, txt)
+					if len(m) > 0 {
+						ednsSubnet = m["subnet"]
+						break
+					}
 				}
 			}
-		}
-		if len(ednsSubnet) == 0 {
-			zap.S().Fatalf("public_ip can't get!")
+			if len(ednsSubnet) == 0 {
+				zap.S().Fatalf("public_ip can't get!")
+			}
 		}
 
 		zap.S().Infof("ednsSubnet: %s", ednsSubnet)
@@ -123,6 +128,10 @@ func init() {
 	)
 	dnsCmd.PersistentFlags().BoolVar(&insecure, "insecure", false,
 		"allow insecure server connections when using SSL",
+	)
+
+	dnsCmd.PersistentFlags().StringVar(&ednsSubnet, "ednsSubnet", "",
+		"ednsSubnet such as 125.119.9.250/32",
 	)
 
 }
