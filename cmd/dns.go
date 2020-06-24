@@ -48,47 +48,6 @@ var dnsCmd = &cobra.Command{
 
 		util.SetupLogs("/var/log/connectME/dns.log")
 
-		client := &http.Client{
-			Transport: &http.Transport{
-				Proxy: http.ProxyFromEnvironment,
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: insecure,
-				},
-			},
-		}
-
-		if len(ednsSubnet) == 0 {
-			m := dnsclient.NewTraditionDNS(func(option *dnsclient.Option) {
-				option.Client = client
-			}).LookupRawTXT("o-o.myaddr.l.google.com")
-			if m.Txt == nil || len(m.Txt) == 0 {
-				zap.S().Fatalf("public_ip can't get!")
-			}
-
-			for _, txt := range m.Txt {
-				if strings.Contains(txt, "edns") {
-					r := regexp.MustCompile(`^edns0-client-subnet (?P<subnet>\S+)$`)
-					m := util.NamedStringSubMatch(r, txt)
-					if len(m) > 0 {
-						ednsSubnet = m["subnet"]
-						break
-					}
-				}
-			}
-			if len(ednsSubnet) == 0 {
-				zap.S().Fatalf("public_ip can't get!")
-			}
-		}
-
-		zap.S().Infof("ednsSubnet: %s", ednsSubnet)
-
-		if httpproxy.FromEnvironment().HTTPProxy != "" {
-			zap.S().Infof("http_proxy: %s", httpproxy.FromEnvironment().HTTPProxy)
-		}
-		if httpproxy.FromEnvironment().HTTPSProxy != "" {
-			zap.S().Infof("https_proxy: %s", httpproxy.FromEnvironment().HTTPSProxy)
-		}
-
 		sig := make(chan os.Signal)
 		signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 		done := make(chan bool, 1)
@@ -99,32 +58,77 @@ var dnsCmd = &cobra.Command{
 			done <- true
 		}()
 
-		// dig @127.0.0.1 -p53 www.google.com A +short
 		go func() {
-			protocol := "udp"
-			h := dns.NewServeMux()
-			s := dnsserver.NewForwardServer(func(option *dnsserver.Option) {
-				option.ClientIP = ednsSubnet
-				option.Protocol = protocol
-				option.Client = client
-			})
-			h.HandleFunc(".", s.Handler)
-			zap.S().Infof("%s_server: %s:%d", protocol, listenDnsAddress, listenDnsPort)
-			zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenDnsAddress, listenDnsPort), protocol, h))
-		}()
 
-		// nslookup -vc www.google.com 127.0.0.1
-		go func() {
-			protocol := "tcp"
-			h := dns.NewServeMux()
-			s := dnsserver.NewForwardServer(func(option *dnsserver.Option) {
-				option.ClientIP = ednsSubnet
-				option.Protocol = protocol
-				option.Client = client
-			})
-			h.HandleFunc(".", s.Handler)
-			zap.S().Infof("%s_server: %s:%d", protocol, listenDnsAddress, listenDnsPort)
-			zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenDnsAddress, listenDnsPort), protocol, h))
+			client := &http.Client{
+				Transport: &http.Transport{
+					Proxy: http.ProxyFromEnvironment,
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: insecure,
+					},
+				},
+			}
+
+			if len(ednsSubnet) == 0 {
+				m := dnsclient.NewTraditionDNS(func(option *dnsclient.Option) {
+					option.Client = client
+				}).LookupRawTXT("o-o.myaddr.l.google.com")
+				if m.Txt == nil || len(m.Txt) == 0 {
+					zap.S().Fatalf("public_ip can't get!")
+				}
+
+				for _, txt := range m.Txt {
+					if strings.Contains(txt, "edns") {
+						r := regexp.MustCompile(`^edns0-client-subnet (?P<subnet>\S+)$`)
+						m := util.NamedStringSubMatch(r, txt)
+						if len(m) > 0 {
+							ednsSubnet = m["subnet"]
+							break
+						}
+					}
+				}
+				if len(ednsSubnet) == 0 {
+					zap.S().Fatalf("public_ip can't get!")
+				}
+			}
+
+			zap.S().Infof("ednsSubnet: %s", ednsSubnet)
+
+			if httpproxy.FromEnvironment().HTTPProxy != "" {
+				zap.S().Infof("http_proxy: %s", httpproxy.FromEnvironment().HTTPProxy)
+			}
+			if httpproxy.FromEnvironment().HTTPSProxy != "" {
+				zap.S().Infof("https_proxy: %s", httpproxy.FromEnvironment().HTTPSProxy)
+			}
+
+			// dig @127.0.0.1 -p53 www.google.com A +short
+			go func() {
+				protocol := "udp"
+				h := dns.NewServeMux()
+				s := dnsserver.NewForwardServer(func(option *dnsserver.Option) {
+					option.ClientIP = ednsSubnet
+					option.Protocol = protocol
+					option.Client = client
+				})
+				h.HandleFunc(".", s.Handler)
+				zap.S().Infof("%s_server: %s:%d", protocol, listenDnsAddress, listenDnsPort)
+				zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenDnsAddress, listenDnsPort), protocol, h))
+			}()
+
+			// nslookup -vc www.google.com 127.0.0.1
+			go func() {
+				protocol := "tcp"
+				h := dns.NewServeMux()
+				s := dnsserver.NewForwardServer(func(option *dnsserver.Option) {
+					option.ClientIP = ednsSubnet
+					option.Protocol = protocol
+					option.Client = client
+				})
+				h.HandleFunc(".", s.Handler)
+				zap.S().Infof("%s_server: %s:%d", protocol, listenDnsAddress, listenDnsPort)
+				zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenDnsAddress, listenDnsPort), protocol, h))
+			}()
+
 		}()
 
 		<-done

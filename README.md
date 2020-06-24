@@ -8,6 +8,8 @@ connectME
 ## ⚙ Installation
 
 ``` bash
+# 如果是升级, 最好先把老版本删除
+# rm -rf /usr/bin/connectME
 CGO_ENABLED=0 \
 GOBIN=/usr/bin \
 go get -u -v github.com/aiziyuer/connectME
