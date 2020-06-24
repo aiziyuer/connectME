@@ -16,8 +16,6 @@ jobs:
       - uses: actions/checkout@master
       - name: set env RELEASE_VERSION
         run: echo ::set-env name=RELEASE_VERSION::${GITHUB_REF:10}
-      - name: set env REPOSITORY_NAME
-        run: echo ::set-env name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
       - name: add version
         run: |
           sed -i '/version = "dev"/d' cmd/version.go
