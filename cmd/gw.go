@@ -68,6 +68,9 @@ var gwCmd = &cobra.Command{
 		go func() {
 
 			l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenGwAddress, listenGwPort))
+			defer func() {
+				_ = l.Close()
+			}()
 			if err != nil {
 				zap.S().Fatal(err)
 			}
