@@ -25,7 +25,7 @@ tcp_server: 0.0.0.0:53
 udp_server: 0.0.0.0:53
 
 # test
-dig @127.0.0.1 -p10053 www.google.com +short
+dig @127.0.0.1 -p53 www.google.com +short
 
 ```
 
