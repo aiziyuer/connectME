@@ -80,7 +80,8 @@ iptables -t nat -S
 ## 🎂 AutoStart
 
 ``` bash
-# auto start
+
+# add systemd service
 cat <<'EOF' >/etc/systemd/system/connectME@.service
 [Unit]
 Description=connectME dns
@@ -92,14 +93,17 @@ Type=simple
 Environment="HTTP_PROXY=127.0.0.1:3128"
 Environment="HTTPS_PROXY=127.0.0.1:3128"
 ExecStart=/usr/bin/connectME %i
-ProtectSystem=strict
 RestartSec=1
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# apply dns
 systemctl daemon-reload && systemctl enable connectME@dns.service && systemctl start connectME@dns.service
+
+# apply gw
 systemctl daemon-reload && systemctl enable connectME@gw.service && systemctl start connectME@gw.service
 ```
 
