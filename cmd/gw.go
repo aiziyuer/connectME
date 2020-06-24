@@ -132,7 +132,7 @@ var gwCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(gwCmd)
 
-	gwCmd.PersistentFlags().IntVar(&listenGwPort, "port", 11081,
+	gwCmd.PersistentFlags().IntVar(&listenGwPort, "port", 1081,
 		"listen server port",
 	)
 	gwCmd.PersistentFlags().StringVar(&listenGwAddress, "address", "0.0.0.0",

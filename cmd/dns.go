@@ -120,7 +120,7 @@ var dnsCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(dnsCmd)
 
-	dnsCmd.PersistentFlags().IntVar(&listenDnsPort, "port", 10053,
+	dnsCmd.PersistentFlags().IntVar(&listenDnsPort, "port", 53,
 		"listen server port",
 	)
 	dnsCmd.PersistentFlags().StringVar(&listenDnsAddress, "address", "0.0.0.0",

@@ -20,32 +20,14 @@ go get -u -v github.com/aiziyuer/connectME
 # start it
 ➜  ~ connectME dns --port 53
 ednsSubnet: 122.235.189.0/24
+http_proxy: http://127.0.0.1:3128
+https_proxy: http://127.0.0.1:3128
 tcp_server: 0.0.0.0:53
 udp_server: 0.0.0.0:53
 
 # test
 dig @127.0.0.1 -p10053 www.google.com +short
 
-# auto start
-cat <<'EOF' >/etc/systemd/system/connectDNS.service
-[Unit]
-Description=connectME dns
-Documentation=https://github.com/aiziyuer/connectME
-After=network.target
-
-[Service]
-Type=simple
-Environment="HTTP_PROXY=127.0.0.1:3128"
-Environment="HTTPS_PROXY=127.0.0.1:3128"
-ExecStart=/usr/bin/connectME dns --port 53
-ProtectSystem=strict
-RestartSec=1
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl daemon-reload && systemctl enable connectDNS.service && systemctl start connectDNS.service
 ```
 
 ## ☕ Serve GW
@@ -54,7 +36,11 @@ systemctl daemon-reload && systemctl enable connectDNS.service && systemctl star
 
 ``` bash
 # start it
+➜  ~ export http_proxy=127.0.0.1:3128
+➜  ~ export https_proxy=127.0.0.1:3128
 ➜  ~ connectME gw --port 1081
+http_proxy: 127.0.0.1:3128
+https_proxy: 127.0.0.1:3128
 gw_server: 0.0.0.0:1081
 
 ```
@@ -90,6 +76,32 @@ iptables -t nat -F PREROUTING && iptables -t nat -A PREROUTING -p tcp -j PROXY
 # review chain
 iptables -t nat -S
 
+```
+
+## AutoStart
+
+``` bash
+# auto start
+cat <<'EOF' >/etc/systemd/system/connectME@.service
+[Unit]
+Description=connectME dns
+Documentation=https://github.com/aiziyuer/connectME
+After=network.target
+
+[Service]
+Type=simple
+Environment="HTTP_PROXY=127.0.0.1:3128"
+Environment="HTTPS_PROXY=127.0.0.1:3128"
+ExecStart=/usr/bin/connectME %i
+ProtectSystem=strict
+RestartSec=1
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload && systemctl enable connectME@dns.service && systemctl start connectME@dns.service
+systemctl daemon-reload && systemctl enable connectME@gw.service && systemctl start connectME@gw.service
 ```
 
 ## 🙏 FAQ
