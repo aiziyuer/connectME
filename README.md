@@ -13,7 +13,6 @@ GOBIN=/usr/bin \
 go get -u -v github.com/aiziyuer/connectME
 ```
 
-
 ## 🧼 Serve DNS
 
 ```
@@ -30,7 +29,7 @@ dig @127.0.0.1 -p10053 www.google.com +short
 
 ```
 
-## ☕ Serve GW
+## 🚪 Serve GW
 
 网关服务安装
 
@@ -78,7 +77,7 @@ iptables -t nat -S
 
 ```
 
-## AutoStart
+## 🎂 AutoStart
 
 ``` bash
 # auto start
