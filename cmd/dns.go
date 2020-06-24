@@ -21,12 +21,16 @@ import (
 	"github.com/aiziyuer/connectME/dnsclient"
 	"github.com/aiziyuer/connectME/dnsserver"
 	"github.com/aiziyuer/connectME/util"
+	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
 	"go.uber.org/zap"
 	"golang.org/x/net/http/httpproxy"
 	"net/http"
+	"os"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/cobra"
 )
@@ -85,6 +89,16 @@ var dnsCmd = &cobra.Command{
 			zap.S().Infof("https_proxy: %s", httpproxy.FromEnvironment().HTTPSProxy)
 		}
 
+		sig := make(chan os.Signal)
+		signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+		done := make(chan bool, 1)
+
+		go func() {
+			msg := <-sig
+			zap.S().Warnf("receive msg: %s", gconv.String(msg))
+			done <- true
+		}()
+
 		// dig @127.0.0.1 -p53 www.google.com A +short
 		go func() {
 			protocol := "udp"
@@ -113,7 +127,9 @@ var dnsCmd = &cobra.Command{
 			zap.S().Fatal(dns.ListenAndServe(fmt.Sprintf("%s:%d", listenDnsAddress, listenDnsPort), protocol, h))
 		}()
 
-		select {}
+		<-done
+
+		return nil
 	},
 }
 
