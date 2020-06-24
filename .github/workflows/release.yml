@@ -30,6 +30,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GO111MODULE: on
           CGO_ENABLED: 0
-          NAME: connectME_${{matrix.os}}_${{matrix.arch}}
           GOOS: ${{matrix.os}}
           GOARCH: ${{matrix.arch}}
