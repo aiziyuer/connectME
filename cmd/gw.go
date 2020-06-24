@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/aiziyuer/connectME/util"
 	"github.com/cybozu-go/transocks"
+	"github.com/gogf/gf/util/gconv"
 	httpDialer "github.com/mwitkow/go-http-dialer"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -27,8 +28,11 @@ import (
 	"io/ioutil"
 	"net"
 	"net/url"
+	"os"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 )
 
 var (
@@ -51,49 +55,74 @@ var gwCmd = &cobra.Command{
 			zap.S().Infof("https_proxy: %s.", httpproxy.FromEnvironment().HTTPSProxy)
 		}
 
-		l, _ := net.Listen("tcp", fmt.Sprintf("%s:%d", listenGwAddress, listenGwPort))
+		sig := make(chan os.Signal)
+		signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+		done := make(chan bool, 1)
 
-		zap.S().Infof("gw_server: %s:%d", listenGwAddress, listenGwPort)
+		go func() {
+			msg := <-sig
+			zap.S().Warnf("receive msg: %s", gconv.String(msg))
+			done <- true
+		}()
 
-		for {
-			conn, _ := l.Accept()
+		go func() {
 
-			go func(src net.Conn) {
+			l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenGwAddress, listenGwPort))
+			if err != nil {
+				zap.S().Fatal(err)
+			}
+			zap.S().Infof("gw_server: %s:%d", listenGwAddress, listenGwPort)
 
-				origAddr, _ := transocks.GetOriginalDST(src.(*net.TCPConn))
-
-				var dialer *httpDialer.HttpTunnel
-				proxyStr := util.GetAnyString(
-					"http://"+regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPSProxy, ""),
-					"http://"+regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPProxy, ""),
-				)
-
-				if strings.TrimSpace(proxyStr) != "" {
-
-					proxyUrl, err := url.Parse(proxyStr)
-					if err != nil {
-						zap.S().Error(err)
-						return
-					}
-					dialer = httpDialer.New(proxyUrl)
-
-					dest, _ := dialer.Dial("tcp", origAddr.String())
-
-					ch := make(chan error, 2)
-					go func() { _, err := io.Copy(src, dest); ioutil.NopCloser(dest); ch <- err }()
-					go func() { _, err := io.Copy(dest, src); ioutil.NopCloser(src); ch <- err }()
-
-					for i := 0; i < 2; i++ {
-						e := <-ch
-						if e != nil {
-							zap.S().Error(e)
-						}
-					}
+			for {
+				conn, err := l.Accept()
+				if err != nil {
+					zap.S().Fatal(err)
 				}
 
-			}(conn)
-		}
+				go func(src net.Conn) {
+					defer func() {
+						ioutil.NopCloser(src)
+					}()
 
+					origAddr, _ := transocks.GetOriginalDST(conn.(*net.TCPConn))
+
+					var dialer *httpDialer.HttpTunnel
+					proxyStr := util.GetAnyString(
+						"http://"+regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPSProxy, ""),
+						"http://"+regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPProxy, ""),
+					)
+
+					if strings.TrimSpace(proxyStr) != "" {
+
+						proxyUrl, err := url.Parse(proxyStr)
+						if err != nil {
+							zap.S().Error(err)
+							return
+						}
+						dialer = httpDialer.New(proxyUrl)
+
+						dest, _ := dialer.Dial("tcp", origAddr.String())
+
+						ch := make(chan error, 2)
+						go func() { _, err := io.Copy(src, dest); ioutil.NopCloser(dest); ch <- err }()
+						go func() { _, err := io.Copy(dest, src); ioutil.NopCloser(src); ch <- err }()
+
+						for i := 0; i < 2; i++ {
+							e := <-ch
+							if e != nil {
+								zap.S().Error(e)
+							}
+						}
+					}
+
+				}(conn)
+			}
+
+		}()
+
+		<-done
+
+		return nil
 	},
 }
 
