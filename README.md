@@ -83,6 +83,23 @@ iptables -t nat -S
 
 ``` bash
 
+# ipset auto restore at reboot
+cat <<'EOF' >/etc/systemd/system/ipset.service
+[Unit]
+Description=ipset persistent rule service
+Before=iptables.service
+ConditionFileNotEmpty=/etc/sysconfig/ipset
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/usr/sbin/ipset -exist -file /etc/sysconfig/ipset restore
+ExecStop=/usr/sbin/ipset -file /etc/sysconfig/ipset save
+[Install]
+WantedBy=multi-user.target
+EOF
+# apply ipset
+systemctl daemon-reload; systemctl enable ipset.service; systemctl start ipset.service
+
 # add systemd service
 cat <<'EOF' >/etc/systemd/system/connectME@.service
 [Unit]
@@ -103,10 +120,10 @@ WantedBy=multi-user.target
 EOF
 
 # apply dns
-systemctl daemon-reload && systemctl enable connectME@dns.service && systemctl start connectME@dns.service
+systemctl daemon-reload; systemctl enable connectME@dns.service; systemctl start connectME@dns.service
 
 # apply gw
-systemctl daemon-reload && systemctl enable connectME@gw.service && systemctl start connectME@gw.service
+systemctl daemon-reload; systemctl enable connectME@gw.service; systemctl start connectME@gw.service
 ```
 
 ## 🙏 FAQ
