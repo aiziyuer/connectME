@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
+	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/cybozu-go/transocks v1.1.1
 	github.com/elazarl/goproxy v0.0.0-20200426045556-49ad98f6dac1 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20200426045556-49ad98f6dac1 // indirect

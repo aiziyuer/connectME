@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aiziyuer/connectME/util"
+	"github.com/avast/retry-go"
 	"github.com/gogf/gf/encoding/gjson"
 	"github.com/gogf/gf/encoding/gparser"
 	"github.com/gogf/gf/os/gtimer"
@@ -130,7 +131,7 @@ func (c *DoH) RefreshCache() {
 				if time.Duration(item.Expiration-now.UnixNano()) < 20*1000*time.Millisecond {
 					m := util.NamedStringSubMatch(regexp.MustCompile(`(?P<name>.+)->(?P<type>.+)`), key)
 					if len(m) == 2 {
-						zap.S().Infof("&&&&&&& refresh caching(%s->%s)... &&&&&&&&&\n", m["name"], m["type"])
+						zap.S().Debug("&&&&&&& refresh caching(%s->%s)... &&&&&&&&&\n", m["name"], m["type"])
 						var dohResponse DohResponse
 						c.lookUP(m["name"], m["type"], &dohResponse)
 					}
@@ -207,32 +208,45 @@ func (c *DoH) lookUP(name string, rType string, dohResponse *DohResponse) bool {
 		}
 	}
 
-	res, err := request.Get(endpoint)
-	if err != nil {
-		zap.S().Error(err)
-		return true
+	if err := retry.Do(
+		func() error {
+			res, err := request.Get(endpoint)
+			if err != nil {
+				zap.S().Warn(err)
+				return err
+			}
+
+			if err := json.NewDecoder(bytes.NewReader(res.Body())).Decode(dohResponse); err != nil {
+				zap.S().Warn(err)
+				return err
+			}
+
+			return nil
+		},
+		retry.Attempts(5),
+		retry.Delay(time.Second*3),
+	); err != nil {
+		zap.S().Fatal(err)
+		return false
 	}
 
-	if err := json.NewDecoder(bytes.NewReader(res.Body())).Decode(dohResponse); err != nil {
-		zap.S().Error(err)
-		return true
-	}
-	// find the shortest ttl
-	ttl := 60 * 60 * 24 // one day
-	for _, item := range dohResponse.Answer {
-		if item.TTL < ttl {
-			ttl = item.TTL
+	if len(dohResponse.Answer) > 0 || len(dohResponse.Authority) > 0 {
+		// find the shortest ttl
+		ttl := 60 * 60 * 24 // one day
+		for _, item := range dohResponse.Answer {
+			if item.TTL < ttl {
+				ttl = item.TTL
+			}
 		}
-	}
-	for _, item := range dohResponse.Authority {
-		if item.TTL < ttl {
-			ttl = item.TTL
+		for _, item := range dohResponse.Authority {
+			if item.TTL < ttl {
+				ttl = item.TTL
+			}
 		}
+		cacheValue := gparser.MustToJsonString(dohResponse)
+		cacheTTL := time.Duration(ttl) * time.Second
+		globalCache.Set(cachedKey, cacheValue, cacheTTL)
 	}
-
-	cacheValue := gparser.MustToJsonString(dohResponse)
-	cacheTTL := time.Duration(ttl) * time.Second
-	globalCache.Set(cachedKey, cacheValue, cacheTTL)
 
 	return false
 }

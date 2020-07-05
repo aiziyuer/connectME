@@ -18,6 +18,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/aiziyuer/connectME/util"
+	"github.com/avast/retry-go"
 	"github.com/cybozu-go/transocks"
 	"github.com/gogf/gf/util/gconv"
 	httpDialer "github.com/mwitkow/go-http-dialer"
@@ -97,25 +98,38 @@ var gwCmd = &cobra.Command{
 
 					if strings.TrimSpace(proxyStr) != "" {
 
-						proxyUrl, err := url.Parse(proxyStr)
+						err := retry.Do(
+							func() error {
+
+								proxyUrl, err := url.Parse(proxyStr)
+								if err != nil {
+									zap.S().Error(err)
+									return err
+								}
+								dialer = httpDialer.New(proxyUrl)
+
+								dest, _ := dialer.Dial("tcp", origAddr.String())
+
+								ch := make(chan error, 2)
+								go func() { _, err := io.Copy(src, dest); ioutil.NopCloser(dest); ch <- err }()
+								go func() { _, err := io.Copy(dest, src); ioutil.NopCloser(src); ch <- err }()
+
+								for i := 0; i < 2; i++ {
+									e := <-ch
+									if e != nil {
+										zap.S().Warn(e)
+										return e
+									}
+								}
+
+								return nil
+							}, retry.Attempts(5),
+						)
+
 						if err != nil {
-							zap.S().Error(err)
-							return
+							zap.S().Fatal(err)
 						}
-						dialer = httpDialer.New(proxyUrl)
 
-						dest, _ := dialer.Dial("tcp", origAddr.String())
-
-						ch := make(chan error, 2)
-						go func() { _, err := io.Copy(src, dest); ioutil.NopCloser(dest); ch <- err }()
-						go func() { _, err := io.Copy(dest, src); ioutil.NopCloser(src); ch <- err }()
-
-						for i := 0; i < 2; i++ {
-							e := <-ch
-							if e != nil {
-								zap.S().Error(e)
-							}
-						}
 					}
 
 				}(conn)
