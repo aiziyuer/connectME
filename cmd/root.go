@@ -49,6 +49,7 @@ func init() {
 	)
 
 	rootCmd.Version = version
+
 }
 
 func initConfig() {

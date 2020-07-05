@@ -2,7 +2,10 @@ package util
 
 import (
 	"github.com/go-resty/resty/v2"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 func NewRequest(client *http.Client) *resty.Request {
@@ -11,13 +14,17 @@ func NewRequest(client *http.Client) *resty.Request {
 	if client != nil {
 		request = resty.
 			NewWithClient(client).
-			SetRetryCount(3).
-			SetDebug(true).R().
+			SetLogger(zap.S()).
+			SetRetryCount(5).
+			SetRetryWaitTime(time.Second * 3).
+			SetDebug(viper.GetBool("DEBUG")).R().
 			EnableTrace()
 	} else {
 		request = resty.New().
-			SetRetryCount(3).
-			SetDebug(true).R().
+			SetLogger(zap.S()).
+			SetRetryCount(5).
+			SetRetryWaitTime(time.Second * 3).
+			SetDebug(viper.GetBool("DEBUG")).R().
 			EnableTrace()
 	}
 
