@@ -111,10 +111,10 @@ var gwCmd = &cobra.Command{
 								}
 								dialer = httpDialer.New(proxyUrl)
 
-								zap.S().Infof("dialer.Dial origAddr(%s)...", origAddr.String())
+								zap.S().Infof("dialer.Dial origAddr(%s) start...", origAddr.String())
 								dest, err := dialer.Dial("tcp", origAddr.String())
 								if err != nil {
-									zap.S().Warn(err)
+									zap.S().Warnf("dialer.Dial origAddr(%s) with error: %s", origAddr.String(), err)
 									return err
 								}
 
@@ -125,7 +125,7 @@ var gwCmd = &cobra.Command{
 								for i := 0; i < 2; i++ {
 									e := <-ch
 									if e != nil {
-										zap.S().Warn(e)
+										zap.S().Warnf("origAddr(%s) transfer data failed with error: %s", e)
 										return e
 									}
 								}
@@ -135,7 +135,7 @@ var gwCmd = &cobra.Command{
 						)
 
 						if err != nil {
-							zap.S().Fatal(err)
+							zap.S().Fatalf("origAddr(%s) access failed with error: %s which has exceed retry time limit.", err)
 						}
 
 					}
