@@ -88,7 +88,10 @@ var gwCmd = &cobra.Command{
 						ioutil.NopCloser(src)
 					}()
 
-					origAddr, _ := transocks.GetOriginalDST(conn.(*net.TCPConn))
+					origAddr, err := transocks.GetOriginalDST(conn.(*net.TCPConn))
+					if err != nil {
+						zap.S().Fatalf("get origAddr error: %s", err)
+					}
 
 					var dialer *httpDialer.HttpTunnel
 					proxyStr := util.GetAnyString(
@@ -108,7 +111,12 @@ var gwCmd = &cobra.Command{
 								}
 								dialer = httpDialer.New(proxyUrl)
 
-								dest, _ := dialer.Dial("tcp", origAddr.String())
+								zap.S().Infof("dialer.Dial origAddr(%s)...", origAddr.String())
+								dest, err := dialer.Dial("tcp", origAddr.String())
+								if err != nil {
+									zap.S().Warn(err)
+									return err
+								}
 
 								ch := make(chan error, 2)
 								go func() { _, err := io.Copy(src, dest); ioutil.NopCloser(dest); ch <- err }()
