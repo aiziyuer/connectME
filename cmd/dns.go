@@ -70,8 +70,8 @@ var dnsCmd = &cobra.Command{
 				},
 			}
 
-			if len(viper.GetString("ednsSubnet")) != 0 {
-				ednsSubnet = viper.GetString("ednsSubnet")
+			if len(viper.GetString("EDNS_SUBNET")) != 0 {
+				ednsSubnet = viper.GetString("EDNS_SUBNET")
 			}
 
 			if len(ednsSubnet) == 0 {
@@ -156,7 +156,7 @@ func init() {
 	)
 
 	dnsCmd.PersistentFlags().StringVar(&ednsSubnet, "ednsSubnet", "",
-		"ednsSubnet such as 125.119.9.250/32",
+		"ednsSubnet such as 125.119.9.250/32 or env EDNS_SUBNET",
 	)
 
 }
