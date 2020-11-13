@@ -33,6 +33,7 @@ import (
 	"syscall"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -67,6 +68,10 @@ var dnsCmd = &cobra.Command{
 						InsecureSkipVerify: insecure,
 					},
 				},
+			}
+
+			if len(viper.GetString("ednsSubnet")) != 0 {
+				ednsSubnet = viper.GetString("ednsSubnet")
 			}
 
 			if len(ednsSubnet) == 0 {
