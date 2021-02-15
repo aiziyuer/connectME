@@ -53,6 +53,15 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 		option.ClientIP = f.option.ClientIP
 		option.Client = f.option.Client
 	})
+	// Traditional
+	tradition := dnsclient.NewTraditionDNS(func(option *dnsclient.Option) {
+		option.Endpoint = "114.114.114.114"
+	})
+
+	blockList := map[string]bool{
+		".quickconnect.to": true,
+		".synology.com":    true,
+	}
 
 	for _, q := range msg.Question {
 		switch q.Qtype {
@@ -69,8 +78,22 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 				doh.LookupRawAppend(r, q.Name, q.Qtype)
 			}
 		default:
-			// dns.TypeTXT, dns.TypeA, dns.TypeAAAA
-			doh.LookupRawAppend(r, q.Name, q.Qtype)
+
+			found := false
+			for k, v := range blockList {
+				if v && gstr.HasSuffix(q.Name, k) {
+					found = true
+					break
+				}
+			}
+
+			if found {
+				tradition.LookupRawAppend(r, q.Name, q.Qtype)
+			} else {
+				// dns.TypeTXT, dns.TypeA, dns.TypeAAAA
+				doh.LookupRawAppend(r, q.Name, q.Qtype)
+			}
+
 		}
 	}
 

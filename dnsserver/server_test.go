@@ -15,13 +15,13 @@ func TestForwardServer(t *testing.T) {
 	if m.Rcode != dns.RcodeSuccess {
 		zap.S().Fatal("public ip can't found, can't start.")
 	}
-	result, _ := m.Answer[0].(*dns.A)
-	zap.S().Info(result.A)
+	result, _ := m.Answer[0].(*dns.TXT)
+	zap.S().Info(result.Txt)
 
 	protocol := "udp"
 	h := dns.NewServeMux()
 	s := NewForwardServer(func(option *Option) {
-		option.ClientIP = result.A.String()
+		option.ClientIP = result.Txt[0]
 		option.Protocol = protocol
 		option.Client = &http.Client{
 			Transport: &http.Transport{

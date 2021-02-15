@@ -2,7 +2,8 @@ package dnsclient
 
 import (
 	"context"
-	"github.com/gogf/gf/util/gconv"
+	"fmt"
+	"github.com/gogf/gf/text/gstr"
 	"github.com/miekg/dns"
 	"go.uber.org/zap"
 	"net"
@@ -13,7 +14,23 @@ type Tradition struct {
 }
 
 func (c *Tradition) LookupRawAppend(r *dns.Msg, name string, rType uint16) {
-	panic("implement me")
+
+	client := &dns.Client{}
+	m := new(dns.Msg)
+	m.SetQuestion(gstr.ReplaceByMap(fmt.Sprintf("%s.", name), map[string]string{"..": "."}), rType)
+	m.RecursionDesired = true
+	response, _, err := client.ExchangeContext(context.Background(), m, c.option.Endpoint)
+	if err != nil {
+		return
+	}
+	if response.Rcode != dns.RcodeSuccess {
+		return
+	}
+
+	for _, a := range response.Answer {
+		r.Answer = append(r.Answer, a)
+	}
+
 }
 
 func (c *Tradition) LookupRawA(name string) []*dns.A {
@@ -54,46 +71,7 @@ func (c *Tradition) LookupRaw(name string, rType uint16) *dns.Msg {
 	ret.SetQuestion(name, rType)
 	ret.SetRcode(ret, dns.RcodeSuccess)
 
-	ctx := context.Background()
-	defer ctx.Done()
-	r := net.Resolver{
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{}
-			return d.DialContext(ctx, "udp", c.option.Endpoint)
-		},
-	}
-
-	var ips []string
-	var err error
-	switch gconv.Uint16(rType) {
-	case dns.TypeTXT:
-		ips, err = r.LookupTXT(ctx, name)
-		if err != nil {
-			ret.SetRcode(ret, dns.RcodeBadName)
-			zap.S().Error(err)
-		}
-	case dns.TypeA:
-		ips, err = r.LookupAddr(ctx, name)
-		if err != nil {
-			ret.SetRcode(ret, dns.RcodeBadName)
-			zap.S().Error(err)
-		}
-	default:
-		ret.SetRcode(ret, dns.RcodeNotImplemented)
-	}
-
-	for _, ip := range ips {
-		rr := &dns.A{
-			Hdr: dns.RR_Header{
-				Name:   dns.Fqdn(name),
-				Rrtype: gconv.Uint16(rType),
-				Class:  dns.ClassINET,
-			},
-			A: net.ParseIP(ip),
-		}
-
-		ret.Answer = append(ret.Answer, rr)
-	}
+	c.LookupRawAppend(ret, name, rType)
 
 	return ret
 }
