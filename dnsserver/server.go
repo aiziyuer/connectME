@@ -59,8 +59,8 @@ func (f *ForwardServer) Handler(writer dns.ResponseWriter, msg *dns.Msg) {
 	})
 
 	blockList := map[string]bool{
-		".quickconnect.to": true,
-		".synology.com":    true,
+		"quickconnect.to": true,
+		"synology.com":    true,
 	}
 
 	for _, q := range msg.Question {
