@@ -134,3 +134,4 @@ systemctl daemon-reload; systemctl enable connectME@gw.service; systemctl start 
 - [emojipedia.org](https://emojipedia.org/)
 - [The @ symbol and systemctl and vsftpd](https://superuser.com/questions/393423/the-symbol-and-systemctl-and-vsftpd)
 - [golang多版本管理神器gvm](https://github.com/moovweb/gvm)
+- [fatal: git fetch-pack: expected shallow list](https://github.com/golang/go/issues/38373)
