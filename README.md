@@ -14,6 +14,7 @@ CGO_ENABLED=0 \
 GOBIN=/usr/bin \
 go get -u -v github.com/aiziyuer/connectME
 ```
+> 为了避免goproxy的缓存问题, 可以`export GOPROXY=direct`强制从源站下载
 
 ## 🧼 Serve DNS
 
