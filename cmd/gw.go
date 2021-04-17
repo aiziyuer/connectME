@@ -17,14 +17,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/aiziyuer/connectME/util"
-	"github.com/avast/retry-go"
-	"github.com/cybozu-go/transocks"
-	"github.com/gogf/gf/util/gconv"
-	httpDialer "github.com/mwitkow/go-http-dialer"
-	"github.com/spf13/cobra"
-	"go.uber.org/zap"
-	"golang.org/x/net/http/httpproxy"
 	"io"
 	"io/ioutil"
 	"net"
@@ -34,6 +26,15 @@ import (
 	"regexp"
 	"strings"
 	"syscall"
+
+	"github.com/aiziyuer/connectME/util"
+	"github.com/avast/retry-go"
+	"github.com/cybozu-go/transocks"
+	"github.com/gogf/gf/util/gconv"
+	httpDialer "github.com/mwitkow/go-http-dialer"
+	"github.com/spf13/cobra"
+	"go.uber.org/zap"
+	"golang.org/x/net/http/httpproxy"
 )
 
 var (

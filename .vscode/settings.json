@@ -1,0 +1,4 @@
+{
+    //  针对非go mod工程有用
+    // "go.gopath": "${workspaceFolder}"，    "editor.formatOnSave": true,
+}
