@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Serve DNS",
+            "name": "dns",
             "type": "go",
             "request": "launch",
             "mode": "auto",
@@ -20,6 +20,20 @@
                 "--port",
                 "1053"
             ]
-        }
+        },
+        {
+            "name": "gw",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceRoot}/main.go",
+            "env": {
+                "http_proxy": "10.10.10.254:3128",
+                "https_proxy": "10.10.10.254:3128"
+            },
+            "args": [
+                "gw"
+            ]
+        },
     ]
 }
