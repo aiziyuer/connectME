@@ -91,7 +91,7 @@ var gwCmd = &cobra.Command{
 
 					origAddr, err := transocks.GetOriginalDST(conn.(*net.TCPConn))
 					if err != nil {
-						zap.S().Fatalf("get origAddr error: %s", err)
+						zap.S().Fatalf("get origAddr error: %s", gconv.String(err))
 					}
 
 					var dialer *httpDialer.HttpTunnel
@@ -126,7 +126,7 @@ var gwCmd = &cobra.Command{
 								for i := 0; i < 2; i++ {
 									e := <-ch
 									if e != nil {
-										zap.S().Warnf("origAddr(%s) transfer data failed with error: %s", e)
+										zap.S().Warnf("origAddr(%s) transfer data failed with error: %s", origAddr.String(), gconv.String(e))
 										return e
 									}
 								}
@@ -136,7 +136,7 @@ var gwCmd = &cobra.Command{
 						)
 
 						if err != nil {
-							zap.S().Fatalf("origAddr(%s) access failed with error: %s which has exceed retry time limit.", err)
+							zap.S().Fatalf("origAddr(%s) access failed with error: %s which has exceed retry time limit.", origAddr.String(), err)
 						}
 
 					}
