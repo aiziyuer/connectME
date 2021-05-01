@@ -18,19 +18,22 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/aiziyuer/connectME/dnsclient"
-	"github.com/aiziyuer/connectME/dnsserver"
-	"github.com/aiziyuer/connectME/util"
-	"github.com/gogf/gf/util/gconv"
-	"github.com/miekg/dns"
-	"go.uber.org/zap"
-	"golang.org/x/net/http/httpproxy"
 	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
 	"strings"
 	"syscall"
+	"time"
+
+	"github.com/aiziyuer/connectME/dnsclient"
+	"github.com/aiziyuer/connectME/dnsserver"
+	"github.com/aiziyuer/connectME/util"
+	"github.com/coreos/go-systemd/daemon"
+	"github.com/gogf/gf/util/gconv"
+	"github.com/miekg/dns"
+	"go.uber.org/zap"
+	"golang.org/x/net/http/httpproxy"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -57,6 +60,18 @@ var dnsCmd = &cobra.Command{
 			msg := <-sig
 			zap.S().Warnf("receive msg: %s", gconv.String(msg))
 			done <- true
+		}()
+
+		// 定时上报心跳
+		go func() {
+			interval, err := daemon.SdWatchdogEnabled(false)
+			if err != nil || interval == 0 {
+				return
+			}
+			for {
+				daemon.SdNotify(false, daemon.SdNotifyWatchdog)
+				time.Sleep(interval / 3)
+			}
 		}()
 
 		go func() {
@@ -135,6 +150,9 @@ var dnsCmd = &cobra.Command{
 			}()
 
 		}()
+
+		// 正常通知systemd服务已经启动
+		daemon.SdNotify(false, daemon.SdNotifyReady)
 
 		<-done
 

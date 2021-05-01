@@ -102,29 +102,29 @@ EOF
 systemctl daemon-reload; systemctl enable ipset.service; systemctl start ipset.service
 
 # add systemd service
-cat <<'EOF' >/etc/systemd/system/connectME@.service
+cat <<'EOF'>/etc/systemd/system/connectME@.service
 [Unit]
 Description=connectME dns
 Documentation=https://github.com/aiziyuer/connectME
 After=network.target
 
 [Service]
-Type=simple
+Type=notify
 Environment="HTTP_PROXY=127.0.0.1:3128"
 Environment="HTTPS_PROXY=127.0.0.1:3128"
 ExecStart=/usr/bin/connectME %i
-RestartSec=1
-Restart=always
+WatchdogSec=30s
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 # apply dns
-systemctl daemon-reload; systemctl enable connectME@dns.service; systemctl start connectME@dns.service
+systemctl daemon-reload; systemctl enable connectME@dns.service; systemctl restart connectME@dns.service
 
 # apply gw
-systemctl daemon-reload; systemctl enable connectME@gw.service; systemctl start connectME@gw.service
+systemctl daemon-reload; systemctl enable connectME@gw.service; systemctl restart connectME@gw.service
 ```
 
 ## 🙏 FAQ

@@ -26,9 +26,11 @@ import (
 	"regexp"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/aiziyuer/connectME/util"
 	"github.com/avast/retry-go"
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/cybozu-go/transocks"
 	"github.com/gogf/gf/util/gconv"
 	httpDialer "github.com/mwitkow/go-http-dialer"
@@ -67,6 +69,19 @@ var gwCmd = &cobra.Command{
 			done <- true
 		}()
 
+		// 定时上报心跳
+		go func() {
+			interval, err := daemon.SdWatchdogEnabled(false)
+			if err != nil || interval == 0 {
+				return
+			}
+			for {
+				daemon.SdNotify(false, daemon.SdNotifyWatchdog)
+				time.Sleep(interval / 3)
+			}
+		}()
+
+		// 真正的服务
 		go func() {
 
 			l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", listenGwAddress, listenGwPort))
@@ -145,6 +160,9 @@ var gwCmd = &cobra.Command{
 			}
 
 		}()
+
+		// 正常通知systemd服务已经启动
+		daemon.SdNotify(false, daemon.SdNotifyReady)
 
 		<-done
 

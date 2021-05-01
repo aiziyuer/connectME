@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
 	github.com/avast/retry-go v3.0.0+incompatible
+	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e
 	github.com/cybozu-go/log v1.6.0 // indirect
 	github.com/cybozu-go/netutil v1.3.0 // indirect
 	github.com/cybozu-go/transocks v1.1.1
