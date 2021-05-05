@@ -32,7 +32,7 @@ func init() {
 	endpoint=114.114.114.114:53
 
 	[rules]
-	.=trandition
+	.=doh
 	.aiziyuer.familyds.com.=trandition
 	.familyds.com.=trandition
 
