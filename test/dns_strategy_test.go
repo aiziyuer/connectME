@@ -20,7 +20,6 @@ func init() {
 	_ = `
 
 	// toml
-	[strategies]
 	[strategies.doh]
 	kind=doh
 	proxy=socks5://xxxx:xxxx
@@ -31,7 +30,11 @@ func init() {
 	proxy=
 	endpoint=114.114.114.114:53
 
-	[rules]
+	[rules.hosts]
+	dns.google=8.8.8.8
+	dns.google.com=8.8.8.8
+
+	[rules.forward]
 	.=doh
 	.aiziyuer.familyds.com.=trandition
 	.familyds.com.=trandition
