@@ -20,6 +20,7 @@ func init() {
 	_ = `
 
 	// toml
+	// 各类DNS的策略定义
 	[strategies.doh]
 	kind=doh
 	proxy=socks5://xxxx:xxxx
@@ -30,11 +31,13 @@ func init() {
 	proxy=
 	endpoint=114.114.114.114:53
 
-	[rules.hosts]
+	// 某些域名固定结果
+	[rules.address]
 	dns.google=8.8.8.8
 	dns.google.com=8.8.8.8
 
-	[rules.forward]
+	// 某些域名使用不同的DNS解析策略
+	[rules.server]
 	.=doh
 	.aiziyuer.familyds.com.=trandition
 	.familyds.com.=trandition
