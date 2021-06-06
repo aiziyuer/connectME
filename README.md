@@ -113,7 +113,9 @@ Type=notify
 Environment="HTTP_PROXY=127.0.0.1:3128"
 Environment="HTTPS_PROXY=127.0.0.1:3128"
 ExecStart=/usr/bin/connectME %i
-WatchdogSec=30s
+WatchdogSec=1s
+StartLimitBurst=0
+StartLimitIntervalSec=0
 Restart=on-failure
 
 [Install]
