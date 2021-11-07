@@ -22,8 +22,7 @@ go get -u -v github.com/aiziyuer/connectME
 # start it
 ➜  ~ connectME dns --port 53
 ednsSubnet: 122.235.189.0/24
-http_proxy: http://127.0.0.1:3128
-https_proxy: http://127.0.0.1:3128
+proxy: http://127.0.0.1:3128
 tcp_server: 0.0.0.0:53
 udp_server: 0.0.0.0:53
 
@@ -38,11 +37,8 @@ dig @127.0.0.1 -p53 www.google.com +short
 
 ``` bash
 # start it
-➜  ~ export http_proxy=127.0.0.1:3128
-➜  ~ export https_proxy=127.0.0.1:3128
+➜  ~ export proxy=http://127.0.0.1:3128
 ➜  ~ connectME gw --port 1081
-http_proxy: 127.0.0.1:3128
-https_proxy: 127.0.0.1:3128
 gw_server: 0.0.0.0:1081
 
 ```

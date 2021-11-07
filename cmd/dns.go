@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"regexp"
@@ -33,7 +34,6 @@ import (
 	"github.com/gogf/gf/util/gconv"
 	"github.com/miekg/dns"
 	"go.uber.org/zap"
-	"golang.org/x/net/http/httpproxy"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -51,6 +51,10 @@ var dnsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		util.SetupLogs("/var/log/connectME/dns.log")
+		proxyUri := util.GetEnvAny("proxy") // http://xxxx:3128, socks5://xxxx:1080
+		if proxyUri != "" {
+			zap.S().Infof("proxy: %s.", proxyUri)
+		}
 
 		sig := make(chan os.Signal)
 		signal.Notify(sig, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -76,9 +80,10 @@ var dnsCmd = &cobra.Command{
 
 		go func() {
 
+			proxy, _ := url.Parse(proxyUri)
 			client := &http.Client{
 				Transport: &http.Transport{
-					Proxy: http.ProxyFromEnvironment,
+					Proxy: http.ProxyURL(proxy),
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: insecure,
 					},
@@ -114,11 +119,9 @@ var dnsCmd = &cobra.Command{
 
 			zap.S().Infof("ednsSubnet: %s", ednsSubnet)
 
-			if httpproxy.FromEnvironment().HTTPProxy != "" {
-				zap.S().Infof("http_proxy: %s", httpproxy.FromEnvironment().HTTPProxy)
-			}
-			if httpproxy.FromEnvironment().HTTPSProxy != "" {
-				zap.S().Infof("https_proxy: %s", httpproxy.FromEnvironment().HTTPSProxy)
+			proxyUri := util.GetEnvAny("proxy")
+			if proxyUri != "" {
+				zap.S().Infof("proxy: %s.", proxyUri)
 			}
 
 			// dig @127.0.0.1 -p53 www.google.com A +short

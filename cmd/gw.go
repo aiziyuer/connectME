@@ -23,7 +23,6 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -32,11 +31,12 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/cybozu-go/transocks"
+	"github.com/gogf/gf/text/gstr"
 	"github.com/gogf/gf/util/gconv"
 	httpDialer "github.com/mwitkow/go-http-dialer"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"golang.org/x/net/http/httpproxy"
+	"golang.org/x/net/proxy"
 )
 
 var (
@@ -52,11 +52,9 @@ var gwCmd = &cobra.Command{
 
 		util.SetupLogs("/var/log/connectME/gw.log")
 
-		if httpproxy.FromEnvironment().HTTPProxy != "" {
-			zap.S().Infof("http_proxy: %s.", httpproxy.FromEnvironment().HTTPProxy)
-		}
-		if httpproxy.FromEnvironment().HTTPSProxy != "" {
-			zap.S().Infof("https_proxy: %s.", httpproxy.FromEnvironment().HTTPSProxy)
+		proxyUri := util.GetEnvAny("proxy")
+		if proxyUri != "" {
+			zap.S().Infof("proxy: %s.", proxyUri)
 		}
 
 		sig := make(chan os.Signal)
@@ -109,23 +107,28 @@ var gwCmd = &cobra.Command{
 						zap.S().Fatalf("get origAddr error: %s", gconv.String(err))
 					}
 
-					var dialer *httpDialer.HttpTunnel
-					proxyStr := util.GetAnyString(
-						"http://"+regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPSProxy, ""),
-						"http://"+regexp.MustCompile(`http(s)?://`).ReplaceAllString(httpproxy.FromEnvironment().HTTPProxy, ""),
-					)
+					var dialer proxy.Dialer
+					if strings.TrimSpace(proxyUri) != "" {
 
-					if strings.TrimSpace(proxyStr) != "" {
+						if gstr.HasPrefix(proxyUri, "socks5://") {
+							dialer, err = proxy.SOCKS5("tcp", gstr.ReplaceByMap(proxyUri, map[string]string{"socks5://": ""}), nil, proxy.Direct)
+							if err != nil {
+								zap.S().Error(err)
+								return
+							}
+						}
+
+						if gstr.HasPrefix(proxyUri, "http://") {
+							proxyUrl, err := url.Parse(proxyUri)
+							if err != nil {
+								zap.S().Error(err)
+								return
+							}
+							dialer = httpDialer.New(proxyUrl)
+						}
 
 						err := retry.Do(
 							func() error {
-
-								proxyUrl, err := url.Parse(proxyStr)
-								if err != nil {
-									zap.S().Error(err)
-									return err
-								}
-								dialer = httpDialer.New(proxyUrl)
 
 								zap.S().Infof("dialer.Dial origAddr(%s) start...", origAddr.String())
 								dest, err := dialer.Dial("tcp", origAddr.String())
